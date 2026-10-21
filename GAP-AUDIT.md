@@ -72,3 +72,16 @@ Realistic target: Phases A–C get CutVault to roughly **70–80% of what a
 short-form creator actually uses daily** in CapCut. Full CapCut parity is not
 a solo-project target; the winning play is nailing the daily 80% with a
 simpler, faster, no-account, no-watermark tool.
+
+## Progress log
+- **2026-10-21 · Phase A shipped (v4, commit 23f61d1)** — project autosave +
+  restore (IndexedDB, verified: project survives reload), undo/redo (60 steps),
+  overlay/PiP track (position/size/retime panel, drawn into exports),
+  per-clip transform (zoom / move / flip / rotate), MP4 export via ffmpeg.wasm
+  (verified end-to-end: real H.264 MP4 720×1280 out of the WebM render) +
+  1080 export size option. Also fixed: the service worker was intercepting
+  cross-origin CDN requests and serving index.html for them — it now only
+  handles same-origin traffic.
+  **Re-score: 25 → ≈35/100.** Moved: layers 3→5, cutting 7→8.5, transforms
+  1→6, projects 1→4, export 3→5.5, UX 5→6. Still at/near zero: keyframe
+  animation (0), AI tools (0.5), media/stock (1), templates (2) — Phases B/C.
