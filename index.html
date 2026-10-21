@@ -101,13 +101,23 @@ a{color:var(--gold2)}
   <div>
     <div class="logo">Cut<span>Vault</span></div>
     <div class="tagline">Free web video editor · by CineVault</div>
+    <div class="tagline" id="saveState" style="color:var(--gold2)"></div>
   </div>
   <div class="sp"></div>
+  <button id="undoBtn" title="Undo">↩</button>
+  <button id="redoBtn" title="Redo">↪</button>
   <button id="installBtn" style="display:none">📲 Install app</button>
   <button class="gold" id="exportBtn">⬇ Export</button>
 </header>
 
 <section class="stage">
+  <div id="restoreBar" style="display:none;max-width:860px;margin:10px auto 0;padding:0 14px;width:100%">
+    <div style="background:#2a2110;border:1px solid #554311;border-radius:12px;padding:11px 13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:13.5px">💾 A saved project was found on this device.</span>
+      <button class="gold" id="restoreBtn" style="min-height:38px">Restore it</button>
+      <button id="discardBtn" style="min-height:38px">Discard</button>
+    </div>
+  </div>
   <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas></div>
   <div class="transport">
     <button class="playbtn" id="playBtn">▶</button>
@@ -117,6 +127,7 @@ a{color:var(--gold2)}
   </div>
   <div class="timeline-sec">
     <div class="timeline"><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
+    <div class="timeline" id="ovTrackWrap" style="margin-top:7px;display:none"><div style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em;margin-bottom:5px">OVERLAY · PICTURE-IN-PICTURE</div><div class="tl-track" id="tlOverlay" style="min-height:44px"></div></div>
     <div class="tl-texts" id="tlTexts"></div>
     <div class="progress" id="expProg"><b id="expLabel">Rendering…</b><div class="bar"><i id="expBar"></i></div><p class="hint" style="margin-top:7px">Keep this tab open — export runs in real time.</p></div>
     <div id="expDone" style="margin-top:10px"></div>
@@ -152,6 +163,8 @@ a{color:var(--gold2)}
     <button id="dupBtn">⧉ Duplicate</button>
     <button class="danger" id="delSegBtn">🗑 Delete</button>
   </div>
+  <div class="sub">Overlay (picture-in-picture)</div>
+  <div id="ovPanel"><p class="hint">In Media, tap “＋ PiP” on any video or photo to place it on top of your main video. Then tap its bar on the overlay track to move, resize or retime it.</p></div>
 </div>
 
 <div class="sheet" id="sheet-audio">
@@ -207,6 +220,11 @@ a{color:var(--gold2)}
     <option value="fill">Fill (crop to frame)</option>
     <option value="black">Fit + black background</option>
   </select></div>
+  <div class="field"><label>Export size</label>
+  <select id="resSel" style="width:100%">
+    <option value="1" selected>Standard (720-wide · faster)</option>
+    <option value="1.5">HD (1080-wide · sharper, slower)</option>
+  </select></div>
 </div>
 
 <div class="sheet" id="sheet-templates">
@@ -224,9 +242,11 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v3 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v4 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
+<video id="vid2" playsinline muted style="display:none"></video>
+<img id="img2" style="display:none" alt="">
 <audio id="musEl" loop style="display:none"></audio>
 <script src="editor.js"></script>
 </body>
