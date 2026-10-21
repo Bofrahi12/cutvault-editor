@@ -1,0 +1,18 @@
+{
+  "name": "CutVault — Video Editor",
+  "short_name": "CutVault",
+  "description": "Free, easy video editor: timeline, templates, captions, filters, music and export. Works offline, nothing is uploaded.",
+  "id": "https://bofrahi12.github.io/cutvault-editor/",
+  "start_url": "https://bofrahi12.github.io/cutvault-editor/",
+  "scope": "https://bofrahi12.github.io/cutvault-editor/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0e13",
+  "theme_color": "#0c0e13",
+  "categories": ["photo", "entertainment", "utilities"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

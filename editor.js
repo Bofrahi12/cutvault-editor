@@ -355,3 +355,26 @@ $("#demoBtn").onclick=()=>{
  },900);
 };
 fileIn.addEventListener("change",()=>{if(window.innerWidth<=980)setTimeout(()=>document.querySelector(".stage").scrollIntoView({behavior:"smooth"}),700)});
+
+/* ---------- v3: bottom sheets, quick captions, PWA ---------- */
+const sheets={}; document.querySelectorAll(".sheet").forEach(sh=>sheets[sh.id.replace("sheet-","")]=sh);
+function closeSheets(){Object.values(sheets).forEach(s=>s.classList.remove("open"));document.querySelectorAll(".tool").forEach(t=>t.classList.remove("on"))}
+document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{
+ const key=btn.dataset.sheet, sh=sheets[key]; if(!sh)return;
+ const was=sh.classList.contains("open"); closeSheets();
+ if(!was){sh.classList.add("open");btn.classList.add("on")}
+});
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheets);
+const demo2=$("#demoBtn2"); if(demo2)demo2.onclick=()=>{closeSheets();$("#demoBtn").click()};
+$("#capBtn").onclick=()=>{
+ const lines=$("#capLines").value.split("\n").map(x=>x.trim()).filter(Boolean);
+ if(!lines.length){flashNow("Type caption lines first");return}
+ let t0=Math.max(0,progTime());
+ lines.forEach((ln,i)=>{texts.push({id:"t"+(++txtSeq),content:ln,start:+(t0+i*2.5).toFixed(2),end:+(t0+(i+1)*2.5).toFixed(2),size:54,color:"#ffffff",stroke:true,x:50,y:88})});
+ $("#capLines").value=""; renderTextTrack(); renderTextList(); drawFrame();
+ flashNow(lines.length+" captions added ✓ — they burn into the export");
+};
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+let deferredInstall=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;$("#installBtn").style.display=""});
+$("#installBtn").onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$("#installBtn").style.display="none"};
