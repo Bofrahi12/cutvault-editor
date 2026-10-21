@@ -158,3 +158,7 @@ simpler, faster, no-account, no-watermark tool.
   many categories (multi-keyframe graphs, WebGL HSL/curves color, offline
   fast export, beat-sync, deeper libraries) plus the excluded cloud stock
   library — further phases are depth polish, not new pillars.
+
+## Progress — Phase G (v10, 2026-10-22)
+Per-clip color (own preset + B/C/S + intensity per segment, overriding global) · 3-point keyframes (middle keyframe with position % + zoom/X/opacity; verified z=1.497 vs exact 1.5 mid-leg math) · beat detection on Track-1 music (energy-flux onsets; 12 beats found in demo music, ticks rendered under the timeline) · **beat-split** (selected clip auto-cut at the beats: 1 → 13 pieces, exact) · audio waveforms inside timeline chips · keyboard shortcuts (Space/S/Delete/Ctrl+Z/Y). A render-triggered peaks retry loop that froze the page was found in QA and fixed with a one-shot guard.
+**Re-scored total: ≈ 68/100** (was 63).

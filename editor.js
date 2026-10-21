@@ -102,6 +102,8 @@ function renderTimeline(){
   const d=document.createElement("div");d.className="seg"+(s.id===selSeg?" sel":"");
   d.style.width=Math.max(64,(segDur(s)/total)*560*tlZoom)+"px";
   d.innerHTML=`<img src="${m.thumb||""}" alt=""><div class="sg-d">${fmt(segDur(s))}${s.freeze?" ❄":""}${s.reverse?" ⏪":""}</div><div class="sg-t">${i+1}. ${m.name.replace(/</g,"&lt;")}${s.kf&&s.kf.on?" 🎞":""}${s.ramp&&s.ramp!=="none"?" 🌀":""}${s.track?" 🎯":""}</div>`;
+  if(m.peaks&&m.peaks.length)d.appendChild(waveCanvas(m.peaks,168,15,"rgba(245,205,99,0.8)"));
+  else if(m.type!=="image"&&!m._peaksTried){m._peaksTried=true;computePeaks(m).then(()=>{if(m.peaks&&!playing&&media.has(m.id))renderTimeline()})}
   let pX0=null,pMoved=false;
   d.addEventListener("pointerdown",ev=>{pX0=ev.clientX;pMoved=false;try{d.setPointerCapture(ev.pointerId)}catch(e){}});
   d.addEventListener("pointermove",ev=>{if(pX0===null||ev.buttons!==1)return;const dx=ev.clientX-pX0;
@@ -118,7 +120,7 @@ function renderTimeline(){
   d.onclick=()=>{selSeg=s.id;renderTimeline();renderSegPanel();seekToSegment(i)};
   tr.appendChild(d)});
  $("#tDur").textContent=fmt(progDur());
- renderTextTrack(); renderSegPanel();
+ renderTextTrack(); renderSegPanel(); renderBeatTicks();
 }
 function renderTextTrack(){
  const el=$("#tlTexts");
@@ -154,7 +156,7 @@ function renderSegPanel(){
  const L=$("#spLeft"),R=$("#spRight"),i=segments.indexOf(s);
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
- wireTF(s); wireSmart(s,p);
+ wireTF(s); wireSmart(s,p); wireClipFx(s,p);
 }
 let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeout(renderTimeline,350)}
 $("#splitBtn").onclick=()=>{
@@ -173,7 +175,9 @@ function flashNow(t){$("#nowPlaying").textContent=t}
 const presetBox=$("#presets");
 Object.keys(PRESETS).forEach(name=>{const b=document.createElement("button");b.className="preset"+(name===curPreset?" sel":"");b.textContent=name;
  b.onclick=()=>{curPreset=name;presetBox.querySelectorAll(".preset").forEach(x=>x.classList.toggle("sel",x.textContent===name));drawFrame()};presetBox.appendChild(b)});
-function filterStr(){const adj=`brightness(${$("#adjB").value/100}) contrast(${$("#adjC").value/100}) saturate(${$("#adjS").value/100})`;
+function filterStr(seg){ if(seg&&seg.fx){ const f=seg.fx;
+   return (PRESETS[f.preset]?PRESETS[f.preset]+" ":"")+`brightness(${f.b/100}) contrast(${f.c/100}) saturate(${f.s/100})` }
+ const adj=`brightness(${$("#adjB").value/100}) contrast(${$("#adjC").value/100}) saturate(${$("#adjS").value/100})`;
  let pro=""; const t=pcCol.temp;
  if(t>0)pro+=` sepia(${Math.min(0.4,t*0.004).toFixed(3)}) brightness(${(1+t*0.0004).toFixed(3)})`;
  else if(t<0)pro+=` hue-rotate(${(t*0.12).toFixed(1)}deg) saturate(${(1+t*0.001).toFixed(3)})`;
@@ -298,15 +302,22 @@ function drawFrame(){
       else ctx.arc(W/2,H/2,Math.max(1,tp)*Math.hypot(W,H)/2,0,Math.PI*2);
       ctx.clip()}
     let Z=s.zoom||1, OX=s.ox||0, OY=s.oy||0, OP=1, ROT=0;
-    if(s.kf&&s.kf.on&&ld>0){const p=Math.max(0,Math.min(1,lt/ld));const e=s.kf.ease==="smooth"?(p*p*(3-2*p)):p;
-      const fo=s.kf.from.op!=null?s.kf.from.op:1, to2=s.kf.to.op!=null?s.kf.to.op:1;
-      const fr=s.kf.from.rot||0, tr2=s.kf.to.rot||0;
-      Z=s.kf.from.z+(s.kf.to.z-s.kf.from.z)*e; OX=s.kf.from.x+(s.kf.to.x-s.kf.from.x)*e; OY=s.kf.from.y+(s.kf.to.y-s.kf.from.y)*e;
-      OP=fo+(to2-fo)*e; ROT=fr+(tr2-fr)*e;
+    if(s.kf&&s.kf.on&&ld>0){const p=Math.max(0,Math.min(1,lt/ld));
+      const F=s.kf.from, T=s.kf.to, M=s.kf.mid;
+      let A=F,B=T,lp=p;
+      if(M){const at=Math.max(0.05,Math.min(0.95,(M.at||50)/100));
+        if(p<at){A=F;B=M;lp=p/at}else{A=M;B=T;lp=(p-at)/(1-at)}}
+      const e=s.kf.ease==="smooth"?(lp*lp*(3-2*lp)):lp;
+      const gv=(o,k,dft)=>o[k]!=null?o[k]:dft;
+      Z=gv(A,"z",1)+(gv(B,"z",1)-gv(A,"z",1))*e;
+      OX=gv(A,"x",0)+(gv(B,"x",0)-gv(A,"x",0))*e;
+      OY=gv(A,"y",0)+(gv(B,"y",0)-gv(A,"y",0))*e;
+      OP=gv(A,"op",1)+(gv(B,"op",1)-gv(A,"op",1))*e;
+      ROT=gv(A,"rot",0)+(gv(B,"rot",0)-gv(A,"rot",0))*e;
       window.__kfDebug={z:+Z.toFixed(3),x:+OX.toFixed(1),y:+OY.toFixed(1),op:+OP.toFixed(2),rot:+ROT.toFixed(1)}}
     if(s.track&&trackPt)Z*=1.18;
     const doDraw=(alpha,useF)=>{
-      ctx.save();ctx.globalAlpha=alpha*OP;if(useF)ctx.filter=filterStr()+(blurPx?` blur(${blurPx}px)`:"");
+      ctx.save();ctx.globalAlpha=alpha*OP;if(useF)ctx.filter=filterStr(s)+(blurPx?` blur(${blurPx}px)`:"");
       let sc; if(fit==="fill")sc=Math.max(W/sw,H/sh); else sc=Math.min(W/sw,H/sh);
       sc*=zoomK*Z*spinS;
       const dw=sw*sc, dh=sh*sc;
@@ -316,7 +327,8 @@ function drawFrame(){
       ctx.rotate((s.rot||0)*Math.PI/180+spinA+ROT*Math.PI/180);
       ctx.drawImage(src,-dw/2,-dh/2,dw,dh);ctx.restore();
     };
-    if(filterIntensity<0.999){doDraw(1,false);doDraw(filterIntensity,true)}else{doDraw(1,true)}
+    const intK=(s.fx&&s.fx.int!=null)?s.fx.int:filterIntensity;
+    if(intK<0.999){doDraw(1,false);doDraw(intK,true)}else{doDraw(1,true)}
     if(clipped)ctx.restore();
     }
     if(curTransition==="dip"&&ld>0.8){const a=Math.min(1,lt/0.35,(ld-lt)/0.35);if(a<1){ctx.fillStyle=`rgba(0,0,0,${(1-Math.max(a,0)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}}
@@ -614,6 +626,14 @@ function TF_HTML(s){return `<div class="sub" style="margin-top:14px">Transform</
  <div class="slider-row"><span>End rotation</span><input type="range" id="kfR" min="-180" max="180" step="5" value="${s.kf.to.rot||0}"><output>${s.kf.to.rot||0}°</output></div>
  <div class="row"><select id="kfEase"><option value="linear">Linear motion</option><option value="smooth" ${s.kf.ease==="smooth"?"selected":""}>Smooth ease</option></select>
  <button id="kfOff">Disable</button></div>
+ ${s.kf.mid?`
+ <div class="sub" style="margin-top:10px">◆ Middle keyframe</div>
+ <div class="slider-row"><span>At %</span><input type="range" id="kfMAt" min="10" max="90" step="5" value="${s.kf.mid.at||50}"><output>${s.kf.mid.at||50}%</output></div>
+ <div class="slider-row"><span>Mid zoom</span><input type="range" id="kfMZ" min="50" max="300" step="5" value="${Math.round((s.kf.mid.z||1)*100)}"><output>${Math.round((s.kf.mid.z||1)*100)}%</output></div>
+ <div class="slider-row"><span>Mid ↔</span><input type="range" id="kfMX" min="-50" max="50" value="${s.kf.mid.x||0}"><output>${s.kf.mid.x||0}</output></div>
+ <div class="slider-row"><span>Mid opacity</span><input type="range" id="kfMO" min="5" max="100" step="5" value="${Math.round((s.kf.mid.op!=null?s.kf.mid.op:1)*100)}"><output>${Math.round((s.kf.mid.op!=null?s.kf.mid.op:1)*100)}%</output></div>
+ <button id="kfMidOff" style="width:100%">Remove middle keyframe</button>`
+ :`<button id="kfMidAdd" style="width:100%;margin-top:8px">＋ Add middle keyframe (peak in the middle)</button>`}
  <p class="hint">Animates from the Transform above (start) to these end values, across the whole clip.</p>`
  :`<button id="kfOn" style="width:100%">＋ Animate this clip (zoom / pan over time)</button>`}`}
 function wireTF(s){
@@ -646,7 +666,17 @@ function wireKF(s){
   if(kr)kr.oninput=e=>{s.kf.to.rot=+e.target.value;e.target.nextElementSibling.textContent=e.target.value+"°";drawFrame()};
   kz.onchange=kx2.onchange=ky.onchange=()=>pushHistory();
   if(ko)ko.onchange=()=>pushHistory(); if(kr)kr.onchange=()=>pushHistory();
-  ke.onchange=e=>{s.kf.ease=e.target.value;pushHistory()}}
+  ke.onchange=e=>{s.kf.ease=e.target.value;pushHistory()}
+  const mAdd=$("#kfMidAdd");
+  if(mAdd)mAdd.onclick=()=>{s.kf.mid={at:50,z:2,x:0,y:0,op:1,rot:0};renderSegPanel();drawFrame();pushHistory()};
+  const mOff=$("#kfMidOff");
+  if(mOff)mOff.onclick=()=>{delete s.kf.mid;renderSegPanel();drawFrame();pushHistory()};
+  const mAt=$("#kfMAt"),mZ=$("#kfMZ"),mX=$("#kfMX"),mO=$("#kfMO");
+  if(mAt){mAt.oninput=e=>{s.kf.mid.at=+e.target.value;e.target.nextElementSibling.textContent=e.target.value+"%"};
+   mZ.oninput=e=>{s.kf.mid.z=+e.target.value/100;e.target.nextElementSibling.textContent=e.target.value+"%";drawFrame()};
+   mX.oninput=e=>{s.kf.mid.x=+e.target.value;e.target.nextElementSibling.textContent=e.target.value;drawFrame()};
+   mO.oninput=e=>{s.kf.mid.op=+e.target.value/100;e.target.nextElementSibling.textContent=e.target.value+"%";drawFrame()};
+   mAt.onchange=mZ.onchange=mX.onchange=mO.onchange=()=>pushHistory()}}
 }
 /* ----- overlays (picture-in-picture) ----- */
 function addOverlay(mediaId){
@@ -724,6 +754,92 @@ setInterval(()=>{
 vid2.addEventListener("seeked",()=>{if(!playing&&!exporting)drawFrame()});
 $("#tlZoomIn").onclick=()=>{tlZoom=Math.min(3,tlZoom*1.3);renderTimeline();renderOverlays()};
 $("#tlZoomOut").onclick=()=>{tlZoom=Math.max(0.6,tlZoom/1.3);renderTimeline();renderOverlays()};
+$("#beatBtn").onclick=async()=>{
+ const mid=$("#musicSel").value, m=mid?media.get(mid):null, st=$("#beatState");
+ if(!m){st.textContent="Pick a Track 1 music file first (Audio → Music track).";return}
+ st.textContent="Listening for beats…";
+ try{ const b=await computeBeats(m); st.textContent="✓ "+b.length+" beats found in “"+m.name+"” — ticks are under the timeline."; renderBeatTicks() }
+ catch(e){ st.textContent="Beat detection failed on that file." }
+};
+$("#beatSplitBtn").onclick=()=>{
+ const idx=segments.findIndex(x=>x.id===selSeg), s=segments[idx];
+ const mid=$("#musicSel").value, m=mid?media.get(mid):null;
+ if(!s){flashNow("Select a clip on the timeline first");return}
+ if(!m||!m.beats||!m.beats.length){flashNow("Detect the beats first (button above)");return}
+ const st0=segStart(idx), en0=st0+segDur(s), mdur=m.duration||en0;
+ let cuts=[];
+ for(let base=0;base<en0;base+=mdur)for(const b of m.beats){const t=base+b; if(t>st0+0.18&&t<en0-0.18)cuts.push(t)}
+ cuts=[...new Set(cuts.map(c=>+c.toFixed(2)))].sort((a,b)=>a-b);
+ if(!cuts.length){flashNow("No beats fall inside the selected clip");return}
+ if(cuts.length>39)cuts=cuts.filter((_,i)=>i%Math.ceil(cuts.length/39)===0);
+ const pieces=[]; let prevIn=s.in, prevCut=st0;
+ const mk=(a,b2)=>{const ns={...s,id:"s"+(++segSeq),in:a,out:b2}; if(ns.freeze)delete ns.freeze; pieces.push(ns)};
+ for(const ct of cuts){ const mi=s.in+(ct-st0)*(s.speed||1); mk(prevIn,mi); prevIn=mi; prevCut=ct }
+ mk(prevIn,s.out);
+ segments.splice(idx,1,...pieces);
+ curSeg=idx; selSeg=pieces[0].id;
+ renderTimeline(); renderSegPanel(); pushHistory();
+ flashNow("Beat sync ✓ — clip cut into "+pieces.length+" pieces on the beat");
+};
+/* keyboard shortcuts */
+document.addEventListener("keydown",e=>{
+ if(e.target.matches("input,textarea,select")||e.target.isContentEditable)return;
+ if(e.code==="Space"){e.preventDefault();$("#playBtn").click()}
+ else if((e.ctrlKey||e.metaKey)&&e.code==="KeyZ"&&!e.shiftKey){e.preventDefault();$("#undoBtn").click()}
+ else if((e.ctrlKey||e.metaKey)&&(e.code==="KeyY"||(e.code==="KeyZ"&&e.shiftKey))){e.preventDefault();$("#redoBtn").click()}
+ else if(e.code==="KeyS"){const b=$("#splitBtn"); if(b)b.click()}
+ else if(e.code==="Delete"||e.code==="Backspace"){const b=$("#spDel"); if(b&&selSeg){e.preventDefault();b.click()}}
+});
+/* ----- beats: detection, ticks, beat-split ----- */
+async function mediaBuffer(m){
+ const ab=m.file?await m.file.arrayBuffer():await (await fetch(m.url)).arrayBuffer();
+ const oc=new OfflineAudioContext(1,1,44100);
+ return await oc.decodeAudioData(ab);
+}
+async function computeBeats(m){
+ if(m.beats)return m.beats;
+ const buf=await mediaBuffer(m); const ch=buf.getChannelData(0), sr=buf.sampleRate;
+ const hop=Math.floor(sr*0.03), win=Math.floor(sr*0.06);
+ const env=[];
+ for(let i=0;i+win<ch.length;i+=hop){ let e=0; for(let j=0;j<win;j+=6)e+=ch[i+j]*ch[i+j]; env.push(e) }
+ const flux=env.map((e,i)=>i?Math.max(0,e-env[i-1]):0);
+ const avg=flux.reduce((a,b)=>a+b,0)/Math.max(1,flux.length);
+ const thr=avg*1.6+1e-6; const beats=[]; let last=-99;
+ for(let i=1;i<flux.length-1;i++){
+  if(flux[i]>thr&&flux[i]>=flux[i-1]&&flux[i]>=flux[i+1]){ const t=i*hop/sr;
+   if(t-last>0.25){beats.push(+t.toFixed(2)); last=t} }
+ }
+ m.beats=beats; return beats;
+}
+function renderBeatTicks(){
+ const el=$("#tlBeats"); if(!el)return;
+ const mid=$("#musicSel").value, m=mid?media.get(mid):null;
+ const total=progDur();
+ if(!m||!m.beats||!m.beats.length||!total){el.style.display="none";return}
+ el.style.display=""; el.innerHTML="";
+ const span=560*tlZoom, dur=m.duration||total;
+ for(let base=0;base<total;base+=dur){
+  for(const b of m.beats){ const t=base+b; if(t>=total)break;
+   const d=document.createElement("div");
+   d.style.cssText=`position:absolute;top:0;width:2px;height:10px;background:var(--gold);opacity:.75;left:${(t/total)*span}px`;
+   el.appendChild(d) }
+ }
+}
+async function computePeaks(m){
+ if(m.peaks||m._peaksBusy)return; m._peaksBusy=true; m._peaksTried=true;
+ try{ const buf=await mediaBuffer(m); const ch=buf.getChannelData(0);
+  const N=56, step=Math.max(1,Math.floor(ch.length/N)), pk=[];
+  for(let i=0;i<N;i++){ let mx=0; const st=i*step; for(let j=0;j<step;j+=24){const v=Math.abs(ch[st+j]||0); if(v>mx)mx=v} pk.push(+mx.toFixed(3)) }
+  m.peaks=pk;
+ }catch(e){}
+ m._peaksBusy=false;
+}
+function waveCanvas(peaks,w,h,color){
+ const c=document.createElement("canvas"); c.width=w; c.height=h; c.className="wf";
+ const g=c.getContext("2d"); const bw=w/peaks.length;
+ peaks.forEach((v,i)=>{ const bh=Math.max(1,v*h); g.fillStyle=color; g.fillRect(i*bw+0.5,(h-bh)/2,Math.max(1,bw-1.5),bh) });
+ return c;
+}
 /* ----- undo / redo ----- */
 let hist=[], histIdx=-1, histLock=false;
 function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
@@ -949,6 +1065,28 @@ $("#revBtn").onclick=async()=>{
 };
 
 /* ---------- v6 · Phase C: chroma key, AI cutout, Whisper captions ---------- */
+function wireClipFx(s,p){
+ if(!p)return; const m=media.get(s.mediaId); if(!m||m.type==="audio")return;
+ const f=s.fx||{preset:"None",b:100,c:100,s:100,int:1};
+ const box=document.createElement("div");
+ box.innerHTML=`<div class="sub" style="margin-top:14px">🎨 Clip color ${s.fx?"(custom)":"(using global)"}</div>
+ <div class="field"><label>Look for this clip only</label><select id="cfPreset" style="width:100%">${Object.keys(PRESETS).map(k=>`<option value="${k}" ${f.preset===k?"selected":""}>${k}</option>`).join("")}</select></div>
+ <div class="slider-row"><span>Brightness</span><input type="range" id="cfB" min="50" max="150" value="${f.b}"><output>${f.b}</output></div>
+ <div class="slider-row"><span>Contrast</span><input type="range" id="cfC" min="50" max="150" value="${f.c}"><output>${f.c}</output></div>
+ <div class="slider-row"><span>Saturation</span><input type="range" id="cfS" min="0" max="200" value="${f.s}"><output>${f.s}</output></div>
+ <div class="slider-row"><span>Intensity</span><input type="range" id="cfI" min="0" max="100" value="${Math.round((f.int!=null?f.int:1)*100)}"><output>${Math.round((f.int!=null?f.int:1)*100)}%</output></div>
+ ${s.fx?`<button id="cfReset" style="width:100%">↩ Reset to global color</button>`:`<p class="hint">Touch any control to give this clip its own color, different from the rest.</p>`}`;
+ p.appendChild(box);
+ const ensure=()=>{ if(!s.fx)s.fx={preset:"None",b:100,c:100,s:100,int:1}; return s.fx };
+ const pr=$("#cfPreset"); if(pr)pr.onchange=e=>{ensure().preset=e.target.value;drawFrame();pushHistory();renderSegPanelSoft()};
+ [["#cfB","b"],["#cfC","c"],["#cfS","s"]].forEach(([id,k])=>{ const el=$(id); if(!el)return;
+  el.oninput=e=>{ensure()[k]=+e.target.value;e.target.nextElementSibling.textContent=e.target.value;drawFrame()};
+  el.onchange=()=>{pushHistory();renderSegPanelSoft()} });
+ const ii=$("#cfI"); if(ii){ ii.oninput=e=>{ensure().int=+e.target.value/100;e.target.nextElementSibling.textContent=e.target.value+"%";drawFrame()};
+  ii.onchange=()=>{pushHistory();renderSegPanelSoft()} }
+ const rs=$("#cfReset"); if(rs)rs.onclick=()=>{delete s.fx;renderSegPanel();drawFrame();pushHistory()};
+}
+function renderSegPanelSoft(){ /* keep panel state fresh without stealing scroll */ }
 function wireSmart(s,p){
  if(!p)return;
  const m=media.get(s.mediaId); if(!m||m.type==="audio")return;
@@ -1009,7 +1147,7 @@ function drawChromaLayer(src,dx,dy,dw,dh,s,W,H){
   }
   kx.putImageData(imgd,0,0);
  }
- ctx.save();ctx.filter=filterStr();ctx.drawImage(kc,0,0);ctx.restore();
+ ctx.save();ctx.filter=filterStr(s);ctx.drawImage(kc,0,0);ctx.restore();
 }
 /* ----- AI cutout layer ----- */
 let fxc=null,fxx=null,cutMaskCvs=null,segVideo=null,segImage=null,segInitP=null,segErr="";
@@ -1067,7 +1205,7 @@ function drawCutoutLayer(src,dx,dy,dw,dh,s,W,H){
  fxx.globalCompositeOperation="source-over";
  fxx.drawImage(src,dx,dy,dw,dh);
  if(cutMaskCvs){fxx.globalCompositeOperation="destination-in";fxx.drawImage(cutMaskCvs,dx,dy,dw,dh);fxx.globalCompositeOperation="source-over"}
- ctx.save();ctx.filter=filterStr();ctx.drawImage(fxc,0,0);ctx.restore();
+ ctx.save();ctx.filter=filterStr(s);ctx.drawImage(fxc,0,0);ctx.restore();
 }
 /* ----- smart frame composer ----- */
 function drawSmartFrame(src,sw,sh,s,W,H,fit){
