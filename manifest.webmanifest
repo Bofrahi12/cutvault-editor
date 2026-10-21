@@ -10,6 +10,13 @@
   "background_color": "#0c0e13",
   "theme_color": "#0c0e13",
   "categories": ["photo", "entertainment", "utilities"],
+  "lang": "en",
+  "screenshots": [
+    {"src": "store-assets/shot-1-editor.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Timeline editor with live preview"},
+    {"src": "store-assets/shot-2-templates.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "32 one-tap templates"},
+    {"src": "store-assets/shot-3-smart.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "AI smart tools: cutout, chroma, tracking"},
+    {"src": "store-assets/shot-4-effects.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Effects, pro color and post FX"}
+  ],
   "icons": [
     {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
