@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CutVault — Free Web Video Editor</title>
 <meta name="description" content="CutVault is a free browser video editor: multi-clip timeline, trim, split, text, filters, music and export. No uploads — your videos never leave your device.">
@@ -24,7 +25,23 @@ header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:
 .tagline{font-size:11px;color:var(--mut)}
 header .sp{flex:1}
 main{flex:1;display:grid;grid-template-columns:250px 1fr 290px;gap:0;min-height:0}
-@media(max-width:980px){main{grid-template-columns:1fr}}
+.tplbar{display:flex;gap:8px;align-items:center;padding:10px 14px;background:#10131b;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tplbar::-webkit-scrollbar{display:none}
+.tplbar .lbl{font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.07em;flex:none}
+.tplchip{flex:none;border:1px solid var(--line);padding:9px 14px;border-radius:99px;font-size:13px}
+.tplchip.sel{outline:2px solid var(--gold);background:#2a2110;color:var(--gold2)}
+.stickers{display:flex;gap:6px;flex-wrap:wrap}
+.stickers button{font-size:19px;padding:6px 10px}
+@media(max-width:980px){
+ main{display:flex;flex-direction:column}
+ .stage{order:-1}
+ aside{border-right:none;border-left:none;border-top:1px solid var(--line)}
+ aside.right{border-left:none}
+ .canvas-wrap{padding:10px;min-height:0}
+ canvas{max-height:52vh}
+ header{gap:8px;padding:9px 12px}
+ .logo{font-size:18px}
+}
 aside{background:var(--panel);border-right:1px solid var(--line);padding:14px;overflow-y:auto}
 aside.right{border-right:none;border-left:1px solid var(--line)}
 aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:16px 0 9px}
@@ -96,6 +113,24 @@ a{color:var(--gold2)}
   </select>
   <button class="gold" id="exportBtn">⬇ Export video</button>
 </header>
+<div class="tplbar" id="tplBar">
+  <span class="lbl">Templates</span>
+  <button class="tplchip" data-tpl="reel">🎬 Reel Hook</button>
+  <button class="tplchip" data-tpl="cine">🎞 Cinematic</button>
+  <button class="tplchip" data-tpl="product">🛍 Product Ad</button>
+  <button class="tplchip" data-tpl="vlog">📱 Vlog</button>
+  <button class="tplchip" data-tpl="estate">🏠 Real Estate</button>
+  <button class="tplchip" data-tpl="none">✖ Clear</button>
+  <span style="flex:1"></span>
+  <span class="lbl">Transition</span>
+  <select id="transSel">
+    <option value="none">None</option>
+    <option value="dip">Dip to black</option>
+    <option value="flash">Flash</option>
+    <option value="zoom">Zoom punch</option>
+  </select>
+  <button class="gold" id="demoBtn">▶ Try the demo project</button>
+</div>
 <main>
   <aside>
     <h3>Media</h3>
@@ -146,6 +181,11 @@ a{color:var(--gold2)}
     <h3>Text overlays</h3>
     <div class="field"><label>New text</label><input id="newText" placeholder="Type a title or caption…" style="width:100%"></div>
     <button class="gold" id="addTextBtn" style="width:100%">＋ Add text at playhead</button>
+    <div style="height:10px"></div>
+    <label>Stickers — tap to add</label>
+    <div class="stickers" id="stickers">
+      <button>🔥</button><button>❤️</button><button>⭐</button><button>👉</button><button>💰</button><button>🚀</button><button>✅</button><button>🎬</button>
+    </div>
     <div style="height:10px"></div>
     <div id="textList"></div>
   </aside>

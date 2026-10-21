@@ -15,6 +15,7 @@ const PRESETS={
  "Vintage":"sepia(0.5) contrast(0.95) brightness(1.05)", "Fade":"brightness(1.1) contrast(0.82) saturate(0.75)",
  "Noir":"grayscale(1) contrast(1.35) brightness(0.92)"};
 let curPreset="None";
+let curTransition="none", letterbox=false;
 const fmt=t=>{t=Math.max(0,t||0);const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(1)};
 const segDur=s=>{const m=media.get(s.mediaId);if(!m)return 0;return m.type==="image"?s.dur:(s.out-s.in)/(s.speed||1)};
 const progDur=()=>segments.reduce((a,s)=>a+segDur(s),0);
@@ -208,6 +209,8 @@ function drawFrame(){
  const W=cv.width,H=cv.height;ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
  const s=segments[curSeg],m=s?media.get(s.mediaId):null;
  if(m){
+  const lt=s?(progTime()-segStart(curSeg)):0, ld=s?segDur(s):0;
+  const zoomK=curTransition==="zoom"?(1+0.09*Math.max(0,1-lt/0.55)):1;
   const src=m.type==="image"?imgEl:vid;
   const ready=m.type==="image"?(imgEl.complete&&imgEl.naturalWidth):vid.readyState>=2;
   if(ready){
@@ -217,18 +220,23 @@ function drawFrame(){
     if(fit==="fit"){ctx.save();ctx.filter="blur(28px) brightness(0.55)";const sc=Math.max(W/sw,H/sh);ctx.drawImage(src,(W-sw*sc)/2,(H-sh*sc)/2,sw*sc,sh*sc);ctx.restore()}
     ctx.save();ctx.filter=filterStr();
     let sc; if(fit==="fill")sc=Math.max(W/sw,H/sh); else sc=Math.min(W/sw,H/sh);
+    sc*=zoomK;
     ctx.drawImage(src,(W-sw*sc)/2,(H-sh*sc)/2,sw*sc,sh*sc);ctx.restore();
+    if(curTransition==="dip"&&ld>0.8){const a=Math.min(1,lt/0.35,(ld-lt)/0.35);if(a<1){ctx.fillStyle=`rgba(0,0,0,${(1-Math.max(a,0)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}}
+    if(curTransition==="flash"&&lt<0.28){ctx.fillStyle=`rgba(255,255,255,${(0.85*(1-lt/0.28)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
    }
   }
  }
  const pt=progTime();
  for(const t of texts){if(pt<t.start||pt>t.end)continue;
-  ctx.save();const fs=t.size*(W/720);ctx.font=`800 ${fs}px Inter,Arial,sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.save();let fs=t.size*(W/720);ctx.font=`800 ${fs}px Inter,Arial,sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
+  const mw=ctx.measureText(t.content).width; if(mw>W*0.92){fs=fs*(W*0.92)/mw;ctx.font=`800 ${fs}px Inter,Arial,sans-serif`}
   if(t.stroke){ctx.lineWidth=fs/9;ctx.strokeStyle="rgba(0,0,0,0.85)";ctx.lineJoin="round";ctx.strokeText(t.content,W*t.x/100,H*t.y/100)}
   ctx.fillStyle=t.color;ctx.shadowColor="rgba(0,0,0,.45)";ctx.shadowBlur=6;ctx.fillText(t.content,W*t.x/100,H*t.y/100);ctx.restore()}
  if(!segments.length){
   ctx.save();ctx.fillStyle="#8b93a5";ctx.font="600 30px Inter,Arial";ctx.textAlign="center";
   ctx.fillText("Add media to start editing",W/2,H/2);ctx.restore()}
+ if(letterbox){ctx.fillStyle="#000";ctx.fillRect(0,0,W,Math.round(H*0.11));ctx.fillRect(0,Math.round(H*0.89),W,Math.round(H*0.11))}
 }
 function loop(){
  $("#tCur").textContent=fmt(progTime());
@@ -297,3 +305,53 @@ function finishExportBlob(){
   <p class="hint" style="margin-top:7px">WebM plays in Chrome/Android and uploads directly to YouTube/TikTok. MP4 conversion is on the v2 roadmap.</p></div>`;
  recorder=null;
 }
+
+/* ---------- v2: templates, transitions, stickers, demo ---------- */
+$("#transSel").onchange=e=>{curTransition=e.target.value;drawFrame()};
+function setSelect(id,val){const el=$(id);el.value=val;el.dispatchEvent(new Event("change"))}
+function setPreset(name){presetBox.querySelectorAll(".preset").forEach(b=>{if(b.textContent===name)b.click()})}
+function mkTplText(content,o){const t={id:"t"+(++txtSeq),content,start:o.start||0,end:o.end||6,size:o.size||64,color:o.color||"#ffffff",stroke:true,x:o.x??50,y:o.y??82,tpl:true};texts.push(t);return t}
+const TEMPLATES={
+ reel:{ratio:"9:16",fit:"fit",preset:"Vivid",trans:"dip",texts:d=>[["YOUR HOOK HERE",{start:0,end:Math.min(3,d),size:88,y:13}],["Your caption — edit me",{start:0,end:d,size:52,y:85}]]},
+ cine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["YOUR FILM TITLE",{start:0,end:Math.min(3.5,d),size:76,y:50}]]},
+ product:{ratio:"4:5",fit:"fit",preset:"None",trans:"flash",texts:d=>[["PRODUCT NAME",{start:0,end:d,size:72,y:11}],["Only $19 🔥",{start:0,end:d,size:66,y:68,color:"#f5cd63"}],["Link in bio 👇",{start:0.5,end:d,size:54,y:87}]]},
+ vlog:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"none",texts:d=>[["A day in my life ✨",{start:0,end:Math.min(3,d),size:60,y:10}],["Your Name",{start:0,end:d,size:46,x:34,y:79}]]},
+ estate:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"dip",texts:d=>[["Tangier · Sea view 🌊",{start:0,end:d,size:56,y:9}],["3 bed · 120 m²",{start:0,end:d,size:56,y:79}],["DM for the price",{start:0,end:d,size:54,y:88,color:"#f5cd63"}]]}
+};
+function applyTemplate(name){
+ document.querySelectorAll(".tplchip").forEach(c=>c.classList.toggle("sel",c.dataset.tpl===name));
+ texts=texts.filter(t=>!t.tpl); letterbox=false;
+ if(name==="none"){renderTextTrack();renderTextList();drawFrame();flashNow("Template cleared");return}
+ const T=TEMPLATES[name]; if(!T)return;
+ const d=Math.max(progDur(),6);
+ setSelect("#ratioSel",T.ratio); setSelect("#fitSel",T.fit); setPreset(T.preset);
+ curTransition=T.trans; $("#transSel").value=T.trans;
+ letterbox=!!T.letter;
+ T.texts(d).forEach(([c,o])=>mkTplText(c,o));
+ renderTextTrack(); renderTextList(); drawFrame();
+ flashNow("Template applied ✓ — tap the gold texts on the right to make them yours");
+ if(window.innerWidth<=980)document.querySelector(".stage").scrollIntoView({behavior:"smooth"});
+}
+document.querySelectorAll(".tplchip").forEach(c=>c.onclick=()=>applyTemplate(c.dataset.tpl));
+document.querySelectorAll("#stickers button").forEach(b=>b.onclick=()=>{
+ const t={id:"t"+(++txtSeq),content:b.textContent,start:+progTime().toFixed(2),end:+Math.min((progDur()||progTime()+2),progTime()+2).toFixed(2),size:96,color:"#ffffff",stroke:false,x:50,y:45};
+ if(t.end<=t.start)t.end=t.start+1;
+ texts.push(t); selText=t.id; renderTextTrack(); renderTextList(); drawFrame();
+});
+/* demo project — hosted sample files, zero uploads needed */
+function addUrlMedia(name,type,url){
+ const id="m"+(++midSeq); const item={id,name,type,url,duration:0,thumb:""}; media.set(id,item);
+ if(type==="video"){const seg=addSegment(item,0);probeVideo(item,seg)}
+ renderMedia(); renderTimeline(); return item;
+}
+$("#demoBtn").onclick=()=>{
+ if([...media.values()].some(m=>m.name==="demo.mp4")){flashNow("Demo already loaded — press ▶");return}
+ const v=addUrlMedia("demo.mp4","video","assets/demo.mp4");
+ const mu=addUrlMedia("demo-music.mp3","audio","assets/demo-music.mp3");
+ setTimeout(()=>{ $("#musicSel").value=mu.id; musEl.src=mu.url;
+   applyTemplate("reel");
+   document.querySelector(".stage").scrollIntoView({behavior:"smooth"});
+   flashNow("Demo loaded ✓ — press ▶ Play, then Export");
+ },900);
+};
+fileIn.addEventListener("change",()=>{if(window.innerWidth<=980)setTimeout(()=>document.querySelector(".stage").scrollIntoView({behavior:"smooth"}),700)});
