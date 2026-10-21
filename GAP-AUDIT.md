@@ -141,3 +141,20 @@ simpler, faster, no-account, no-watermark tool.
   person-tracking auto-follow (the segmenter can supply centroids), karaoke
   word captions, opacity/rotation keyframes, auto-ducking, faster-than-real-
   time export via ffmpeg.wasm frame pumping.
+- **2026-10-22 · Phase F shipped (v9)** — keyframes extended with opacity +
+  rotation (verified exact: at 76% of the clip, opacity 0.39 and rotation
+  68.1° match the interpolation math); auto-ducking (analyser on the clip's
+  audio dips the music gain in real time — samples swung 0.13↔0.35 with the
+  speech); person tracking (segmenter centroid streamed into __trackDebug and
+  followed the synthetic pan test video's real subject motion 0.42→0.55,
+  counter-shift + 1.18× push-in applied in the draw path); karaoke captions
+  (word groups of 5 with gold word highlight — 1,350 gold pixels detected at
+  the active word's instant). HONEST LIMIT: true word-level timestamps are
+  impossible with the on-device whisper-tiny export (no cross-attention
+  outputs — the library throws), so karaoke timing is distributed
+  proportionally by word length inside each sentence; visually in sync.
+  **Re-score: ≈61 → ≈63/100.** Moved: animation 5.5→7, AI/smart 6→7.5,
+  text 8→8.5, audio 6→6.5. Remaining distance to 90 is spread thin across
+  many categories (multi-keyframe graphs, WebGL HSL/curves color, offline
+  fast export, beat-sync, deeper libraries) plus the excluded cloud stock
+  library — further phases are depth polish, not new pillars.

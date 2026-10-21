@@ -198,6 +198,8 @@ a{color:var(--gold2)}
   <div class="field"><label>Track 2 (voiceover, ambience, SFX…)</label><select id="music2Sel" style="width:100%"><option value="">— none —</option></select></div>
   <div class="slider-row"><span>Track 2 vol</span><input type="range" id="music2Vol" min="0" max="100" value="80"><output id="music2VolO">80</output></div>
   <div class="field"><label>Track 2 starts at (seconds into the video)</label><input type="number" id="music2Off" min="0" max="600" step="0.5" value="0" style="width:100%"></div>
+  <div class="row"><button id="duckBtn" style="width:100%">🦆 Auto-duck music under speech: OFF</button></div>
+  <p class="hint">When ON, the music dips automatically whenever the clip's own audio (voice) is loud, and comes back in the pauses.</p>
 </div>
 
 <div class="sheet" id="sheet-text">
@@ -227,6 +229,7 @@ a{color:var(--gold2)}
     <option value="french">French</option>
     <option value="spanish">Spanish</option>
   </select></div>
+  <label style="display:flex;gap:9px;align-items:center;font-size:14px;margin:4px 0 10px"><input type="checkbox" id="capKaraoke" style="width:19px;height:19px;accent-color:var(--gold)"> 🎤 Karaoke — highlight each word as it's spoken</label>
   <button class="gold bigbtn" id="autoCapBtn">🤖 Generate captions for selected clip</button>
   <p class="hint" id="autoCapState" style="margin-top:8px">First use downloads the Whisper AI model (~40 MB) once. Then it works on-device. Select a video clip on the timeline first — captions are placed on that clip.</p>
   <div class="sub">Your texts</div>
@@ -338,7 +341,7 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v8 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v9 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
