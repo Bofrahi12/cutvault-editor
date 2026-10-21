@@ -41,9 +41,9 @@ canvas{background:#000;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.55)
 .timeline-sec{max-width:860px;width:100%;margin:0 auto;padding:8px 14px 14px}
 .timeline{background:#0a0c10;border:1px solid var(--line);border-radius:14px;padding:9px;overflow-x:auto}
 .tl-track{display:flex;gap:7px;align-items:stretch;min-height:62px}
-.seg{position:relative;border:2.5px solid #333b52;border-radius:10px;overflow:hidden;cursor:pointer;flex:none;background:#11141d;min-width:74px}
+.seg{position:relative;border:2.5px solid #333b52;border-radius:10px;overflow:hidden;cursor:pointer;flex:none;background:#11141d;min-width:74px;touch-action:none;user-select:none;-webkit-user-select:none}
 .seg.sel{border-color:var(--gold)}
-.seg img{width:100%;height:44px;object-fit:cover;display:block;background:#000}
+.seg img{width:100%;height:44px;object-fit:cover;display:block;background:#000;pointer-events:none;-webkit-user-drag:none}
 .seg .sg-t{font-size:10px;padding:4px 6px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg .sg-d{position:absolute;top:4px;right:5px;font-size:10px;background:rgba(0,0,0,.68);padding:2px 6px;border-radius:6px;color:#fff}
 .tl-empty{color:var(--mut);font-size:14px;padding:22px 10px}
@@ -126,6 +126,12 @@ a{color:var(--gold2)}
     <span id="nowPlaying">Tap “Media +” below, or open Templates → Demo</span>
   </div>
   <div class="timeline-sec">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em">TIMELINE — drag clips to reorder</span>
+      <span style="flex:1"></span>
+      <button id="tlZoomOut" style="min-height:32px;padding:4px 11px">−</button>
+      <button id="tlZoomIn" style="min-height:32px;padding:4px 11px">＋</button>
+    </div>
     <div class="timeline"><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
     <div class="timeline" id="ovTrackWrap" style="margin-top:7px;display:none"><div style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em;margin-bottom:5px">OVERLAY · PICTURE-IN-PICTURE</div><div class="tl-track" id="tlOverlay" style="min-height:44px"></div></div>
     <div class="tl-texts" id="tlTexts"></div>
@@ -183,6 +189,10 @@ a{color:var(--gold2)}
     <div class="field"><label>Fade out (seconds)</label><input type="number" id="fadeOutS" min="0" max="10" step="0.5" value="0" style="width:100%"></div>
   </div>
   <p class="hint">Tip: each clip also has its own volume — select a clip in Edit.</p>
+  <div class="sub">Second audio track</div>
+  <div class="field"><label>Track 2 (voiceover, ambience, SFX…)</label><select id="music2Sel" style="width:100%"><option value="">— none —</option></select></div>
+  <div class="slider-row"><span>Track 2 vol</span><input type="range" id="music2Vol" min="0" max="100" value="80"><output id="music2VolO">80</output></div>
+  <div class="field"><label>Track 2 starts at (seconds into the video)</label><input type="number" id="music2Off" min="0" max="600" step="0.5" value="0" style="width:100%"></div>
 </div>
 
 <div class="sheet" id="sheet-text">
@@ -220,6 +230,11 @@ a{color:var(--gold2)}
   <div class="slider-row"><span>Brightness</span><input type="range" id="adjB" min="50" max="150" value="100"><output id="adjBO">100</output></div>
   <div class="slider-row"><span>Contrast</span><input type="range" id="adjC" min="50" max="150" value="100"><output id="adjCO">100</output></div>
   <div class="slider-row"><span>Saturation</span><input type="range" id="adjS" min="0" max="200" value="100"><output id="adjSO">100</output></div>
+  <div class="sub">Pro color</div>
+  <div class="slider-row"><span>Temperature</span><input type="range" id="pcTemp" min="-100" max="100" value="0"><output id="pcTempO">0</output></div>
+  <div class="slider-row"><span>Tint</span><input type="range" id="pcTint" min="-100" max="100" value="0"><output id="pcTintO">0</output></div>
+  <div class="slider-row"><span>Vibrance</span><input type="range" id="pcVib" min="-100" max="100" value="0"><output id="pcVibO">0</output></div>
+  <div class="slider-row"><span>Faded blacks</span><input type="range" id="pcFade" min="0" max="100" value="0"><output id="pcFadeO">0</output></div>
   <div class="sub">Filter intensity</div>
   <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
   <div class="sub">Transition between clips</div>
@@ -291,12 +306,13 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v6 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v7 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
 <img id="img2" style="display:none" alt="">
 <audio id="musEl" loop style="display:none"></audio>
+<audio id="mus2El" loop style="display:none"></audio>
 <script src="editor.js"></script>
 </body>
 </html>

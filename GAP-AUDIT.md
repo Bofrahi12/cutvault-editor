@@ -110,3 +110,18 @@ simpler, faster, no-account, no-watermark tool.
   templates 2→4.5. Still low: animation/keyframes (2), layers (5),
   media/stock (1) — Phase D territory (keyframes, speed curves, HSL/curves,
   multi-track audio, timeline drag) then Phase E polish toward the 90 goal.
+- **2026-10-21 · Phase D shipped (v7)** — keyframes per clip (start transform →
+  end zoom/X/Y, linear/smooth ease, one-tap Zoom in/out + Pan presets; verified:
+  zoom animated 1.05→1.45 mid-clip via debug probe); speed ramps (up/down/hero/
+  slow-mo via live playbackRate curves; verified 0.48→1.01 rising); pro color
+  (temperature/tint/vibrance/faded-blacks sliders feeding the filter chain;
+  verified in the composed filter string); SECOND audio track with volume +
+  start offset (verified: silent before offset, playing after; wired into the
+  export graph); timeline drag-to-reorder with pointer events (first attempt
+  silently failed — the chip <img> started a native drag; fixed with
+  pointer-events:none + touch-action:none; verified order swap) and timeline
+  zoom (560→728 px verified). **Re-score: ≈51 → ≈57/100.** Moved: animation
+  2→5.5, speed 4.5→6.5, color 4.5→6, audio 4.5→6, tracks/timeline 5→6.5.
+  Remaining weight: stock/media library (1), templates depth (4.5),
+  projects (4), export speed/quality (5.5) — Phase E (post-FX pack, library
+  depth, named project slots, bigger exports), then Phase F for the 90 goal.
