@@ -98,3 +98,15 @@ simpler, faster, no-account, no-watermark tool.
   UX 6→6.5. Next: Phase C (chroma key, on-device Whisper captions, MediaPipe
   background removal, 20 templates) → then Phase D pro depth (keyframes, speed
   curves, HSL/curves color, multi-track audio, timeline drag).
+- **2026-10-21 · Phase C shipped (v6)** — chroma key per clip (verified at
+  pixel level: key color → alpha 0, subject untouched, green despill on soft
+  edges); AI cutout via MediaPipe selfie segmentation (verified VISUALLY on a
+  real model photo: clean person extraction — note this model's mask is
+  0=person / 255=background, inverted from the docs' implication; caught only
+  because the composite was screenshotted); Whisper auto captions on-device
+  via Transformers.js (verified end-to-end: the JFK sample transcribed
+  word-perfect and placed at the right program times); templates 5 → 20.
+  **Re-score: ≈44 → ≈51/100.** Moved: AI/smart 0.5→6, text/captions 6→7.5,
+  templates 2→4.5. Still low: animation/keyframes (2), layers (5),
+  media/stock (1) — Phase D territory (keyframes, speed curves, HSL/curves,
+  multi-track audio, timeline drag) then Phase E polish toward the 90 goal.

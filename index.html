@@ -198,6 +198,17 @@ a{color:var(--gold2)}
   <div class="sub">Quick captions — one line = one caption (2.5s each, burned into the export)</div>
   <div class="field"><textarea id="capLines" rows="3" placeholder="Paste or type your caption lines here, one per line…" style="width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px"></textarea></div>
   <button class="bigbtn" id="capBtn">🎙 Add lines as timed captions</button>
+  <div class="sub">🤖 Auto captions — AI listens to the selected clip (on your device)</div>
+  <div class="field"><label>Speech language</label>
+  <select id="capLang" style="width:100%">
+    <option value="">Auto-detect</option>
+    <option value="english">English</option>
+    <option value="arabic">Arabic · العربية</option>
+    <option value="french">French</option>
+    <option value="spanish">Spanish</option>
+  </select></div>
+  <button class="gold bigbtn" id="autoCapBtn">🤖 Generate captions for selected clip</button>
+  <p class="hint" id="autoCapState" style="margin-top:8px">First use downloads the Whisper AI model (~40 MB) once. Then it works on-device. Select a video clip on the timeline first — captions are placed on that clip.</p>
   <div class="sub">Your texts</div>
   <div id="textList"></div>
 </div>
@@ -259,13 +270,28 @@ a{color:var(--gold2)}
     <button class="tplchip" data-tpl="product">🛍 Product Ad</button>
     <button class="tplchip" data-tpl="vlog">📱 Vlog</button>
     <button class="tplchip" data-tpl="estate">🏠 Real Estate</button>
+    <button class="tplchip" data-tpl="quote">💬 Quote</button>
+    <button class="tplchip" data-tpl="news">📰 Breaking News</button>
+    <button class="tplchip" data-tpl="tutorial">🎓 Tutorial Steps</button>
+    <button class="tplchip" data-tpl="beforeafter">🔀 Before / After</button>
+    <button class="tplchip" data-tpl="countdown">⏱ Countdown 3·2·1</button>
+    <button class="tplchip" data-tpl="sale">🏷 Big Sale</button>
+    <button class="tplchip" data-tpl="travel">✈️ Travel</button>
+    <button class="tplchip" data-tpl="food">🍔 Food</button>
+    <button class="tplchip" data-tpl="fitness">💪 Fitness</button>
+    <button class="tplchip" data-tpl="gaming">🎮 Gaming</button>
+    <button class="tplchip" data-tpl="music">🎵 Music Drop</button>
+    <button class="tplchip" data-tpl="birthday">🎂 Birthday</button>
+    <button class="tplchip" data-tpl="business">💼 Business</button>
+    <button class="tplchip" data-tpl="minimal">◻ Minimal</button>
+    <button class="tplchip" data-tpl="podcast">🎙 Podcast Clip</button>
     <button class="tplchip" data-tpl="none">✖ Clear template</button>
   </div>
   <div class="sub">Start instantly</div>
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v5 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v6 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

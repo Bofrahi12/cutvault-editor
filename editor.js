@@ -129,7 +129,7 @@ function renderSegPanel(){
  const L=$("#spLeft"),R=$("#spRight"),i=segments.indexOf(s);
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
- wireTF(s);
+ wireTF(s); wireSmart(s,p);
 }
 let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeout(renderTimeline,350)}
 $("#splitBtn").onclick=()=>{
@@ -232,6 +232,9 @@ function drawFrame(){
    const sw=m.type==="image"?imgEl.naturalWidth:vid.videoWidth, sh=m.type==="image"?imgEl.naturalHeight:vid.videoHeight;
    if(sw&&sh){
     const fit=$("#fitSel").value;
+    const smartOn=(s.chroma&&s.chroma.on)||(s.cutout&&s.cutout.on);
+    if(smartOn){ drawSmartFrame(src,sw,sh,s,W,H,fit) }
+    else{
     if(fit==="fit"){ctx.save();ctx.filter="blur(28px) brightness(0.55)";const sc=Math.max(W/sw,H/sh);ctx.drawImage(src,(W-sw*sc)/2,(H-sh*sc)/2,sw*sc,sh*sc);ctx.restore()}
     const tp=Math.max(0,Math.min(1,lt/0.45));
     const blurPx=curTransition==="blur"?Math.round(16*(1-tp)):0;
@@ -257,9 +260,10 @@ function drawFrame(){
     };
     if(filterIntensity<0.999){doDraw(1,false);doDraw(filterIntensity,true)}else{doDraw(1,true)}
     if(clipped)ctx.restore();
+    }
     if(curTransition==="dip"&&ld>0.8){const a=Math.min(1,lt/0.35,(ld-lt)/0.35);if(a<1){ctx.fillStyle=`rgba(0,0,0,${(1-Math.max(a,0)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}}
     if(curTransition==="flash"&&lt<0.28){ctx.fillStyle=`rgba(255,255,255,${(0.85*(1-lt/0.28)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
-    if(curTransition==="fade"&&lt<0.45){ctx.fillStyle=`rgba(0,0,0,${(1-tp).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+    if(curTransition==="fade"&&lt<0.45){ctx.fillStyle=`rgba(0,0,0,${(1-lt/0.45).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
     if(curTransition==="cross"&&prevFrame&&lt<0.5&&prevFrame.width===W){ctx.save();ctx.globalAlpha=1-lt/0.5;ctx.drawImage(prevFrame,0,0,W,H);ctx.restore()}
    }
   }
@@ -380,7 +384,22 @@ const TEMPLATES={
  cine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["YOUR FILM TITLE",{start:0,end:Math.min(3.5,d),size:76,y:50}]]},
  product:{ratio:"4:5",fit:"fit",preset:"None",trans:"flash",texts:d=>[["PRODUCT NAME",{start:0,end:d,size:72,y:11}],["Only $19 🔥",{start:0,end:d,size:66,y:68,style:"gold",anim:"pop"}],["Link in bio 👇",{start:0.5,end:d,size:54,y:87,style:"box"}]]},
  vlog:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"none",texts:d=>[["A day in my life ✨",{start:0,end:Math.min(3,d),size:60,y:10}],["Your Name",{start:0,end:d,size:46,x:34,y:79}]]},
- estate:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"dip",texts:d=>[["Tangier · Sea view 🌊",{start:0,end:d,size:56,y:9}],["3 bed · 120 m²",{start:0,end:d,size:56,y:79}],["DM for the price",{start:0,end:d,size:54,y:88,color:"#f5cd63"}]]}
+ estate:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"dip",texts:d=>[["Tangier · Sea view 🌊",{start:0,end:d,size:56,y:9}],["3 bed · 120 m²",{start:0,end:d,size:56,y:79}],["DM for the price",{start:0,end:d,size:54,y:88,color:"#f5cd63"}]]},
+ quote:{ratio:"9:16",fit:"fit",preset:"Fade",trans:"fade",texts:d=>[["“ Your quote here ”",{start:0,end:d,size:62,y:44,style:"classic",anim:"fade"}],["— Author Name",{start:0.6,end:d,size:44,y:56,anim:"fade"}]]},
+ news:{ratio:"16:9",fit:"fill",preset:"Sharp Pop",trans:"slide",texts:d=>[["BREAKING NEWS",{start:0,end:Math.min(3,d),size:64,y:12,style:"highlight",anim:"slide"}],["Your headline goes here",{start:0,end:d,size:56,y:86,style:"box"}]]},
+ tutorial:{ratio:"9:16",fit:"fit",preset:"None",trans:"none",texts:d=>[["STEP 1",{start:0,end:Math.min(3,d),size:72,y:12,style:"gold"}],["Watch what I do 👇",{start:0,end:d,size:50,y:86,style:"box"}]]},
+ beforeafter:{ratio:"9:16",fit:"fill",preset:"Vivid",trans:"wipe",texts:d=>[["BEFORE",{start:0,end:Math.max(1,d/2),size:70,y:14,anim:"slide"}],["AFTER ✨",{start:Math.max(1,d/2),end:d,size:70,y:14,style:"gold",anim:"pop"}]]},
+ countdown:{ratio:"9:16",fit:"fit",preset:"Noir",trans:"zoom",texts:d=>[["3",{start:0,end:1,size:150,y:50,anim:"pop"}],["2",{start:1,end:2,size:150,y:50,anim:"pop"}],["1",{start:2,end:3,size:150,y:50,anim:"pop"}],["GO! 🚀",{start:3,end:d,size:96,y:50,style:"gold",anim:"pop"}]]},
+ sale:{ratio:"9:16",fit:"fit",preset:"Vivid",trans:"flash",texts:d=>[["BIG SALE",{start:0,end:d,size:92,y:14,style:"gold"}],["-50% TODAY ONLY",{start:0,end:d,size:64,y:26,anim:"pop"}],["Shop now 👇",{start:0.5,end:d,size:54,y:88,style:"box"}]]},
+ travel:{ratio:"9:16",fit:"fill",preset:"Golden Hour",trans:"fade",texts:d=>[["📍 City Name",{start:0,end:d,size:60,y:11,anim:"slide"}],["Save this trip ✈️",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ food:{ratio:"9:16",fit:"fill",preset:"Warm",trans:"dip",texts:d=>[["RECIPE NAME 🍔",{start:0,end:d,size:64,y:11}],["Full recipe in comments",{start:0,end:d,size:48,y:87,style:"box"}]]},
+ fitness:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"zoom",texts:d=>[["DAY 1 💪",{start:0,end:Math.min(3,d),size:76,y:12,style:"gold",anim:"pop"}],["No excuses.",{start:0,end:d,size:54,y:86}]]},
+ gaming:{ratio:"16:9",fit:"fill",preset:"Teal & Orange",trans:"shake",texts:d=>[["INSANE PLAY 🎮",{start:0,end:Math.min(3,d),size:72,y:12,style:"neon",anim:"pop"}],["Follow for more",{start:0,end:d,size:50,y:88,style:"box"}]]},
+ music:{ratio:"9:16",fit:"fit",preset:"Dream",trans:"fade",texts:d=>[["🎵 Track Title",{start:0,end:d,size:66,y:16,anim:"fade"}],["Artist Name",{start:0,end:d,size:50,y:25,anim:"fade"}],["Out now — link in bio",{start:1,end:d,size:48,y:87,style:"box"}]]},
+ birthday:{ratio:"9:16",fit:"fit",preset:"Pastel",trans:"flash",texts:d=>[["🎂 Happy Birthday!",{start:0,end:d,size:74,y:16,style:"gold",anim:"pop"}],["Name · Age",{start:0,end:d,size:52,y:26,anim:"fade"}]]},
+ business:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",texts:d=>[["COMPANY NAME",{start:0,end:d,size:70,y:14}],["Your slogan here",{start:0,end:d,size:50,y:24,anim:"fade"}],["📞 0600 000 000",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ minimal:{ratio:"9:16",fit:"fit",preset:"Fade",trans:"fade",texts:d=>[["less, but better.",{start:0,end:d,size:56,y:48,anim:"fade"}]]},
+ podcast:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"none",texts:d=>[["🎙 Podcast Name",{start:0,end:Math.min(3,d),size:58,y:11,style:"box",anim:"slide"}],["“The quote that hooks them…”",{start:0,end:d,size:52,y:85,style:"classic"}]]}
 };
 function applyTemplate(name){
  document.querySelectorAll(".tplchip").forEach(c=>c.classList.toggle("sel",c.dataset.tpl===name));
@@ -718,4 +737,181 @@ $("#revBtn").onclick=async()=>{
   flashNow("Reverse failed for this clip ("+((e&&e.message)||"format")+") — the original is untouched");
  }
  btn.disabled=false; btn.textContent="⏪ Reverse clip";
+};
+
+/* ---------- v6 · Phase C: chroma key, AI cutout, Whisper captions ---------- */
+function wireSmart(s,p){
+ if(!p)return;
+ const m=media.get(s.mediaId); if(!m||m.type==="audio")return;
+ s.chroma=s.chroma||{on:false,color:"#00e600",sim:38,smooth:18};
+ s.cutout=s.cutout||{on:false,bg:"blur",color:"#101418"};
+ const box=document.createElement("div");
+ box.innerHTML=`<div class="sub" style="margin-top:14px">Smart tools — background</div>
+ <div class="row">
+   <button id="smChroma">${s.chroma.on?"🟢 Chroma key: ON":"🟢 Chroma key"}</button>
+   <button id="smCutout">${s.cutout.on?"🤖 AI cutout: ON":"🤖 AI cutout"}</button>
+ </div>
+ <div id="smChromaPanel" style="display:${s.chroma.on?"":"none"};margin-top:10px">
+   <div class="row"><div class="field"><label>Key color (tap the backdrop color)</label><input type="color" id="smColor" value="${s.chroma.color}" style="width:100%;height:40px;padding:2px"></div></div>
+   <div class="slider-row"><span>Similarity</span><input type="range" id="smSim" min="5" max="80" value="${s.chroma.sim}"><output>${s.chroma.sim}</output></div>
+   <div class="slider-row"><span>Edge softness</span><input type="range" id="smSmooth" min="0" max="60" value="${s.chroma.smooth}"><output>${s.chroma.smooth}</output></div>
+   <p class="hint">Removes a solid backdrop color (green screen) from this clip. The blurred scene stays behind.</p>
+ </div>
+ <div id="smCutoutPanel" style="display:${s.cutout.on?"":"none"};margin-top:10px">
+   <div class="field"><label>Backdrop behind the person</label>
+   <select id="smBg" style="width:100%"><option value="blur" ${s.cutout.bg==="blur"?"selected":""}>Blurred scene</option><option value="color" ${s.cutout.bg==="color"?"selected":""}>Solid color</option></select></div>
+   <div class="field"><label>Backdrop color</label><input type="color" id="smBgColor" value="${s.cutout.color}" style="width:100%;height:40px;padding:2px"></div>
+   <p class="hint" id="smCutState">AI finds the person in this clip and keeps only them. First use downloads a small AI model (~3 MB).</p>
+ </div>`;
+ p.appendChild(box);
+ $("#smChroma").onclick=()=>{s.chroma.on=!s.chroma.on;if(s.chroma.on)s.cutout.on=false;renderSegPanel();drawFrame();pushHistory()};
+ $("#smCutout").onclick=()=>{s.cutout.on=!s.cutout.on;if(s.cutout.on){s.chroma.on=false;initSegmenters()}renderSegPanel();drawFrame();pushHistory()};
+ const cc=$("#smColor"); if(cc)cc.oninput=e=>{s.chroma.color=e.target.value;chromaDirty=true;drawFrame()};
+ const cs=$("#smSim"); if(cs)cs.oninput=e=>{s.chroma.sim=+e.target.value;e.target.nextElementSibling.textContent=s.chroma.sim;chromaDirty=true;drawFrame()};
+ const cm=$("#smSmooth"); if(cm)cm.oninput=e=>{s.chroma.smooth=+e.target.value;e.target.nextElementSibling.textContent=s.chroma.smooth;chromaDirty=true;drawFrame()};
+ const bg=$("#smBg"); if(bg)bg.onchange=e=>{s.cutout.bg=e.target.value;drawFrame();pushHistory()};
+ const bc=$("#smBgColor"); if(bc)bc.oninput=e=>{s.cutout.color=e.target.value;drawFrame()};
+}
+/* ----- chroma key layer ----- */
+let kc=null,kx=null,chromaDirty=true,lastKeyT=-1;
+function drawChromaLayer(src,dx,dy,dw,dh,s,W,H){
+ if(!kc){kc=document.createElement("canvas");kx=kc.getContext("2d",{willReadFrequently:true})}
+ if(kc.width!==W||kc.height!==H){kc.width=W;kc.height=H}
+ const isVid=src===vid;
+ const tNow=isVid?vid.currentTime:0;
+ if(chromaDirty||!isVid||Math.abs(tNow-lastKeyT)>0.02){
+  lastKeyT=tNow; chromaDirty=false;
+  kx.clearRect(0,0,W,H); kx.drawImage(src,dx,dy,dw,dh);
+  const ch=s.chroma;
+  const kr=parseInt(ch.color.slice(1,3),16),kg=parseInt(ch.color.slice(3,5),16),kb=parseInt(ch.color.slice(5,7),16);
+  const t0=(ch.sim/100)*441, sm=Math.max(24,(ch.smooth/100)*320);
+  const imgd=kx.getImageData(0,0,W,H), d=imgd.data;
+  for(let i=0;i<d.length;i+=4){
+   if(d[i+3]===0)continue;
+   const dr=d[i]-kr,dg=d[i+1]-kg,db=d[i+2]-kb;
+   const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+   if(dist<t0){d[i+3]=0;continue}
+   if(dist<t0+sm){d[i+3]=Math.round(d[i+3]*(dist-t0)/sm);
+    if(d[i+1]>d[i]&&d[i+1]>d[i+2])d[i+1]=Math.max(d[i],d[i+2])}
+  }
+  kx.putImageData(imgd,0,0);
+ }
+ ctx.save();ctx.filter=filterStr();ctx.drawImage(kc,0,0);ctx.restore();
+}
+/* ----- AI cutout layer ----- */
+let fxc=null,fxx=null,cutMaskCvs=null,segVideo=null,segImage=null,segInitP=null,segErr="";
+async function initSegmenters(){
+ if(segInitP)return segInitP;
+ segInitP=(async()=>{
+  try{
+   const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+   const fileset=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+   const model="https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite";
+   segVideo=await vision.ImageSegmenter.createFromOptions(fileset,{baseOptions:{modelAssetPath:model,delegate:"CPU"},runningMode:"VIDEO",outputCategoryMask:true});
+   segImage=await vision.ImageSegmenter.createFromOptions(fileset,{baseOptions:{modelAssetPath:model,delegate:"CPU"},runningMode:"IMAGE",outputCategoryMask:true});
+  }catch(e){ segErr="AI cutout could not load ("+((e&&e.message)||"network")+") — check connection and reopen the clip."; const el=$("#smCutState"); if(el)el.textContent=segErr }
+ })();
+ return segInitP;
+}
+function maskToCanvas(mask){
+ try{
+  const w=mask.width,h=mask.height,arr=mask.getAsUint8Array();
+  if(!cutMaskCvs)cutMaskCvs=document.createElement("canvas");
+  cutMaskCvs.width=w;cutMaskCvs.height=h;
+  const c=cutMaskCvs.getContext("2d"), imgd=c.createImageData(w,h), d=imgd.data;
+  /* verified empirically with a real portrait: this model's mask is 0 = person, 255 = background */
+  for(let i=0;i<arr.length;i++){const o=i*4;d[o]=255;d[o+1]=255;d[o+2]=255;d[o+3]=arr[i]<128?255:0}
+  c.putImageData(imgd,0,0);
+  return true;
+ }catch(e){return false}
+}
+let lastSegRun=0;
+setInterval(()=>{
+ const s=segments[curSeg]; if(!s||!s.cutout||!s.cutout.on)return;
+ if(segErr)return;
+ if(!segVideo&&!segImage){initSegmenters();return}
+ const m=media.get(s.mediaId); if(!m)return;
+ const now=performance.now();
+ if(m.type==="video"&&segVideo&&vid.readyState>=2&&(playing||exporting||now-lastSegRun>600)){
+  lastSegRun=now;
+  try{const r=segVideo.segmentForVideo(vid,now); if(r&&r.categoryMask)maskToCanvas(r.categoryMask)}catch(e){}
+ }else if(m.type==="image"&&segImage&&imgEl.complete&&imgEl.naturalWidth&&now-lastSegRun>600){
+  lastSegRun=now;
+  try{const r=segImage.segment(imgEl); if(r&&r.categoryMask)maskToCanvas(r.categoryMask)}catch(e){}
+ }
+},130);
+function drawCutoutLayer(src,dx,dy,dw,dh,s,W,H){
+ if(!fxc){fxc=document.createElement("canvas");fxx=fxc.getContext("2d")}
+ if(fxc.width!==W||fxc.height!==H){fxc.width=W;fxc.height=H}
+ fxx.clearRect(0,0,W,H);
+ fxx.globalCompositeOperation="source-over";
+ fxx.drawImage(src,dx,dy,dw,dh);
+ if(cutMaskCvs){fxx.globalCompositeOperation="destination-in";fxx.drawImage(cutMaskCvs,dx,dy,dw,dh);fxx.globalCompositeOperation="source-over"}
+ ctx.save();ctx.filter=filterStr();ctx.drawImage(fxc,0,0);ctx.restore();
+}
+/* ----- smart frame composer ----- */
+function drawSmartFrame(src,sw,sh,s,W,H,fit){
+ if(s.cutout&&s.cutout.on&&s.cutout.bg==="color"){ctx.fillStyle=s.cutout.color||"#101418";ctx.fillRect(0,0,W,H)}
+ else{ctx.save();ctx.filter="blur(28px) brightness(0.55)";const scb=Math.max(W/sw,H/sh);ctx.drawImage(src,(W-sw*scb)/2,(H-sh*scb)/2,sw*scb,sh*scb);ctx.restore()}
+ let sc=fit==="fill"?Math.max(W/sw,H/sh):Math.min(W/sw,H/sh);
+ const dw=sw*sc,dh=sh*sc,dx=(W-dw)/2,dy=(H-dh)/2;
+ if(s.chroma&&s.chroma.on)drawChromaLayer(src,dx,dy,dw,dh,s,W,H);
+ else if(s.cutout&&s.cutout.on)drawCutoutLayer(src,dx,dy,dw,dh,s,W,H);
+}
+/* ----- Whisper auto captions ----- */
+let whisperPipe=null;
+async function getWhisper(st){
+ if(whisperPipe)return whisperPipe;
+ st.textContent="Loading the speech AI engine…";
+ const T=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3/dist/transformers.min.js");
+ T.env.allowLocalModels=false;
+ st.textContent="Downloading the Whisper model (one time, ~40 MB)…";
+ whisperPipe=await T.pipeline("automatic-speech-recognition","onnx-community/whisper-tiny",{dtype:"q8",
+  progress_callback:p=>{if(p.status==="progress"&&p.progress!=null)st.textContent="Downloading Whisper model… "+Math.round(p.progress)+"% (one time)"}});
+ return whisperPipe;
+}
+async function mediaPCM16k(m){
+ const blob=m.file||await (await fetch(m.url)).blob();
+ const ab=await blob.arrayBuffer();
+ const ac=new (window.AudioContext||window.webkitAudioContext)();
+ const buf=await ac.decodeAudioData(ab); ac.close();
+ const off=new OfflineAudioContext(1,Math.ceil(buf.duration*16000),16000);
+ const srcNode=off.createBufferSource(); srcNode.buffer=buf; srcNode.connect(off.destination); srcNode.start();
+ const rendered=await off.startRendering();
+ return rendered.getChannelData(0);
+}
+$("#autoCapBtn").onclick=async()=>{
+ const st=$("#autoCapState"), btn=$("#autoCapBtn");
+ const i=segments.findIndex(x=>x.id===selSeg);
+ const s=segments[i], m=s?media.get(s.mediaId):null;
+ if(!s||!m||m.type!=="video"){st.textContent="Select a video clip on the timeline first — auto captions listen to that clip.";return}
+ btn.disabled=true;
+ try{
+  const pipe=await getWhisper(st);
+  st.textContent="Listening to “"+m.name+"”… (on your device — longer clips take longer)";
+  const pcm=await mediaPCM16k(m);
+  const lang=$("#capLang").value;
+  const opts={return_timestamps:true,chunk_length_s:30,stride_length_s:5,task:"transcribe"};
+  if(lang)opts.language=lang;
+  const res=await pipe(pcm,opts);
+  const chunks=(res.chunks&&res.chunks.length)?res.chunks:[{timestamp:[0,Math.min(3,m.duration||3)],text:res.text}];
+  const base=segStart(i);
+  let added=0;
+  for(const c of chunks){
+   const txt=(c.text||"").trim(); if(!txt||txt==="[BLANK_AUDIO]")continue;
+   const mt0=c.timestamp[0]??0, mt1=c.timestamp[1]??(mt0+2.5);
+   if(mt1<s.in||mt0>s.out)continue;
+   const p0=base+Math.max(0,(Math.max(mt0,s.in)-s.in)/(s.speed||1));
+   const p1=base+Math.max(0,(Math.min(mt1,s.out)-s.in)/(s.speed||1));
+   if(p1<=p0)continue;
+   texts.push({id:"t"+(++txtSeq),content:txt,start:+p0.toFixed(2),end:+p1.toFixed(2),size:54,color:"#ffffff",stroke:true,x:50,y:88,style:"classic",anim:"none"});
+   added++;
+  }
+  renderTextTrack(); renderTextList(); pushHistory(); drawFrame();
+  st.textContent=added?("✓ "+added+" captions generated from the speech — tap any caption in Text to fix words or restyle.")
+                      :"The AI heard no clear speech in that clip — nothing was added.";
+ }catch(e){
+  st.textContent="Auto captions failed ("+((e&&e.message)||"network")+") — check your connection (first use needs the model download) and try again.";
+ }
+ btn.disabled=false;
 };
