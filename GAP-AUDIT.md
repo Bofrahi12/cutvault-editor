@@ -125,3 +125,19 @@ simpler, faster, no-account, no-watermark tool.
   Remaining weight: stock/media library (1), templates depth (4.5),
   projects (4), export speed/quality (5.5) — Phase E (post-FX pack, library
   depth, named project slots, bigger exports), then Phase F for the 90 goal.
+- **2026-10-21 · Phase E shipped (v8)** — post-FX layer (vignette verified by
+  pixels: corner luminance 73→50, center untouched; animated film grain, glow,
+  drifting light leak, glitch bursts); libraries deepened: 32 templates,
+  14 text styles (retro/block/cursive/typewriter/gradient/pop/thin/sticker —
+  template-applied styles verified), 60 stickers, 20 filter looks, 14
+  transitions (+slide-up, zoom-out); 3 named project slots on IndexedDB
+  (round-trip verified: save → clear → load restored clips+texts+settings —
+  one real bug found & fixed: applySnapshot zeroed segments when settings
+  were stored without them); export sizes up to QHD + 4K (canvas verified
+  2160×3840). **Re-score: ≈57 → ≈61/100.** Moved: effects 5.5→7, templates
+  4.5→5.5, text 7.5→8, projects 4→5.5, export 5.5→6. The one structural
+  holdout remains stock/media library (1) — CapCut's licensed cloud library;
+  out of the editor-feature scale per the goal definition. Phase F candidates:
+  person-tracking auto-follow (the segmenter can supply centroids), karaoke
+  word captions, opacity/rotation keyframes, auto-ducking, faster-than-real-
+  time export via ffmpeg.wasm frame pumping.

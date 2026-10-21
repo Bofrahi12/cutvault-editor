@@ -17,7 +17,10 @@ const PRESETS={
  "Noir":"grayscale(1) contrast(1.35) brightness(0.92)",
  "Teal & Orange":"contrast(1.15) saturate(1.25) hue-rotate(-8deg)", "Golden Hour":"sepia(0.38) saturate(1.3) brightness(1.06) contrast(1.05)",
  "Pastel":"brightness(1.12) saturate(0.8) contrast(0.9)", "Dream":"brightness(1.08) saturate(1.1) contrast(0.92)",
- "Sharp Pop":"contrast(1.22) saturate(1.3)", "Moody":"brightness(0.9) contrast(1.2) saturate(0.8)"};
+ "Sharp Pop":"contrast(1.22) saturate(1.3)", "Moody":"brightness(0.9) contrast(1.2) saturate(0.8)",
+ "Retro 70s":"sepia(0.55) saturate(1.2) hue-rotate(-8deg)", "Cross Process":"saturate(1.5) hue-rotate(14deg) contrast(1.1)",
+ "Bleach":"saturate(0.55) contrast(1.2) brightness(1.06)", "Infrared":"hue-rotate(160deg) saturate(1.6)",
+ "Duotone":"grayscale(0.7) sepia(0.4) hue-rotate(185deg) saturate(2.2)", "Sepia Tone":"sepia(0.8) contrast(1.02) brightness(1.02)"};
 let curPreset="None";
 let filterIntensity=1;
 let pcCol={temp:0,tint:0,vib:0,fade:0};
@@ -190,6 +193,13 @@ $("#music2Off").onchange=()=>markDirty();
  el.oninput=e=>{pcCol[k]=+e.target.value;$("#"+id+"O").textContent=e.target.value;drawFrame()};
  el.onchange=()=>{pushHistory();markDirty()};
 });
+[["fxVig","vig"],["fxGrain","grain"],["fxGlow","glow"],["fxLeak","leak"]].forEach(([id,k])=>{
+ const el=$("#"+id); if(!el)return;
+ el.oninput=e=>{postfx[k]=+e.target.value/100;$("#"+id+"O").textContent=e.target.value;drawFrame()};
+ el.onchange=()=>{pushHistory();markDirty()};
+});
+const fxGl=$("#fxGlitch");
+if(fxGl)fxGl.onclick=()=>{postfx.glitch=!postfx.glitch;fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";drawFrame();pushHistory();markDirty()};
 $("#videoVol").oninput=e=>{$("#videoVolO").textContent=e.target.value;vid.volume=e.target.value/100;if(vidGain)vidGain.gain.value=e.target.value/100};
 
 /* ---------- text overlays ---------- */
@@ -209,7 +219,7 @@ function renderTextList(){
   <div class="field"><label>Color</label><input type="color" value="${t.color}" data-k="color" style="width:100%;height:34px;padding:2px"></div></div>
   <div class="row"><div class="field"><label>↔ Position %</label><input type="number" min="0" max="100" value="${t.x}" data-k="x"></div>
   <div class="field"><label>↕ Position %</label><input type="number" min="0" max="100" value="${t.y}" data-k="y"></div></div>
-  <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","outline"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
+  <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","outline","retro","block","cursive","type","grad","pop","thin","sticker"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
   <div class="field"><label>Animation</label><select data-k="anim" style="width:100%">${["none","fade","pop","slide","drop"].map(v=>`<option value="${v}" ${(t.anim||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div></div>
   <button class="danger" style="width:100%">Delete text</button>`;
   d.onclick=()=>{selText=t.id;renderTextList();renderTextTrack()};
@@ -260,7 +270,7 @@ function drawFrame(){
  const s=segments[curSeg],m=s?media.get(s.mediaId):null;
  if(m){
   const lt=s?(progTime()-segStart(curSeg)):0, ld=s?segDur(s):0;
-  const zoomK=curTransition==="zoom"?(1+0.09*Math.max(0,1-lt/0.55)):1;
+  const zoomK=curTransition==="zoom"?(1+0.09*Math.max(0,1-lt/0.55)):curTransition==="zoomout"?(1-0.09*Math.max(0,1-lt/0.55)):1;
   const src=m.type==="image"?imgEl:vid;
   const ready=m.type==="image"?(imgEl.complete&&imgEl.naturalWidth):vid.readyState>=2;
   if(ready){
@@ -274,6 +284,7 @@ function drawFrame(){
     const tp=Math.max(0,Math.min(1,lt/0.45));
     const blurPx=curTransition==="blur"?Math.round(16*(1-tp)):0;
     const slideX=curTransition==="slide"?(1-tp)*W*0.92:0;
+    const slideYv=curTransition==="slideup"?(1-tp)*H*0.92:0;
     const spinA=curTransition==="spin"?-0.16*(1-tp):0;
     const spinS=curTransition==="spin"?(0.9+0.1*tp):1;
     const shk=curTransition==="shake"&&lt<0.32?1:0;
@@ -292,7 +303,7 @@ function drawFrame(){
       let sc; if(fit==="fill")sc=Math.max(W/sw,H/sh); else sc=Math.min(W/sw,H/sh);
       sc*=zoomK*Z*spinS;
       const dw=sw*sc, dh=sh*sc;
-      ctx.translate(W/2+(OX/100)*W+slideX+shX, H/2+(OY/100)*H+shY);
+      ctx.translate(W/2+(OX/100)*W+slideX+shX, H/2+(OY/100)*H+shY+slideYv);
       if(s.flip)ctx.scale(-1,1);
       ctx.rotate((s.rot||0)*Math.PI/180+spinA);
       ctx.drawImage(src,-dw/2,-dh/2,dw,dh);ctx.restore();
@@ -309,6 +320,7 @@ function drawFrame(){
  }
  const pt=progTime();
  drawOverlays(pt);
+ applyPostFX();
  for(const t of texts){if(pt<t.start||pt>t.end)continue;
   const age=pt-t.start, remain=t.end-pt;
   let alpha=1, scaleK=1, yOff=0;
@@ -317,20 +329,52 @@ function drawFrame(){
   else if(t.anim==="slide"){const p=Math.max(0,Math.min(1,age/0.35));yOff=(1-p)*38;alpha=Math.min(1,Math.max(0,age)/0.2)}
   else if(t.anim==="drop"){const p=Math.max(0,Math.min(1,age/0.3));yOff=-(1-p)*(1-p)*70;alpha=Math.min(1,Math.max(0,age)/0.15)}
   ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,alpha));
-  let fs=t.size*(W/720);ctx.font=`800 ${fs}px Inter,Arial,sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
-  const mw0=ctx.measureText(t.content).width; if(mw0>W*0.92){fs=fs*(W*0.92)/mw0;ctx.font=`800 ${fs}px Inter,Arial,sans-serif`}
+  const fontFor=(f)=>`${t.style==="thin"?"300":t.style==="cursive"?"italic 700":"800"} ${f}px ${t.style==="cursive"?"'Segoe Script','Comic Sans MS',cursive":t.style==="type"?"'Courier New',monospace":"Inter,Arial,sans-serif"}`;
+  let fs=t.size*(W/720);ctx.font=fontFor(fs);ctx.textAlign="center";ctx.textBaseline="middle";
+  const mw0=ctx.measureText(t.content).width; if(mw0>W*0.92){fs=fs*(W*0.92)/mw0;ctx.font=fontFor(fs)}
   ctx.translate(W*t.x/100, H*t.y/100+yOff); if(scaleK!==1)ctx.scale(scaleK,scaleK);
   const mw=ctx.measureText(t.content).width, style=t.style||"classic";
-  if(style==="box"||style==="highlight"){const pad=fs*0.32;ctx.fillStyle=style==="box"?"rgba(0,0,0,0.58)":"#f5cd63";
+  if(style==="box"||style==="highlight"||style==="sticker"){const pad=fs*0.32;ctx.fillStyle=style==="box"?"rgba(0,0,0,0.58)":style==="sticker"?"#ffffff":"#f5cd63";
    ctx.beginPath();ctx.roundRect(-mw/2-pad,-fs*0.72,mw+pad*2,fs*1.44,fs*0.28);ctx.fill()}
-  if(style!=="neon"&&(t.stroke||style==="gold"||style==="outline")){ctx.lineWidth=style==="outline"?fs/7:fs/9;ctx.strokeStyle=style==="gold"?"rgba(60,35,0,0.9)":"rgba(0,0,0,0.85)";ctx.lineJoin="round";ctx.strokeText(t.content,0,0)}
-  if(style!=="outline"){ctx.fillStyle=style==="gold"?"#f5cd63":style==="neon"?"#7df9ff":style==="highlight"?"#141414":t.color;
-   ctx.shadowColor=style==="neon"?"#19c8e8":"rgba(0,0,0,.45)";ctx.shadowBlur=style==="neon"?26:6;ctx.fillText(t.content,0,0)}
+  if(style==="retro"||style==="pop"){ctx.save();ctx.shadowBlur=0;ctx.fillStyle=style==="retro"?"#e4572e":"#141414";ctx.fillText(t.content,fs*0.07,fs*0.08);ctx.restore()}
+  if(style!=="neon"&&(t.stroke||style==="gold"||style==="outline"||style==="block"||style==="pop"||style==="retro")){ctx.lineWidth=style==="outline"?fs/7:style==="block"?fs/5.5:style==="pop"?fs/7:style==="retro"?fs/10:fs/9;ctx.strokeStyle=style==="gold"?"rgba(60,35,0,0.9)":style==="retro"?"#7c2d12":"rgba(0,0,0,0.88)";ctx.lineJoin="round";ctx.strokeText(t.content,0,0)}
+  if(style!=="outline"){
+   if(style==="grad"){const gr=ctx.createLinearGradient(0,-fs/2,0,fs/2);gr.addColorStop(0,"#f5cd63");gr.addColorStop(0.55,"#ff7ad9");gr.addColorStop(1,"#7d7aff");ctx.fillStyle=gr}
+   else ctx.fillStyle=style==="gold"?"#f5cd63":style==="neon"?"#7df9ff":style==="highlight"?"#141414":style==="sticker"?"#141414":style==="retro"?"#ffe8c9":style==="block"?"#ffffff":t.color;
+   ctx.shadowColor=style==="neon"?"#19c8e8":"rgba(0,0,0,.45)";ctx.shadowBlur=style==="neon"?26:style==="thin"?0:6;ctx.fillText(t.content,0,0)}
   ctx.restore()}
  if(!segments.length){
   ctx.save();ctx.fillStyle="#8b93a5";ctx.font="600 30px Inter,Arial";ctx.textAlign="center";
   ctx.fillText("Add media to start editing",W/2,H/2);ctx.restore()}
  if(letterbox){ctx.fillStyle="#000";ctx.fillRect(0,0,W,Math.round(H*0.11));ctx.fillRect(0,Math.round(H*0.89),W,Math.round(H*0.11))}
+}
+/* ----- post FX (whole-video layer, drawn after clips, before text) ----- */
+let postfx={vig:0,grain:0,glow:0,leak:0,glitch:false};
+const noiseCvs=document.createElement("canvas"); noiseCvs.width=noiseCvs.height=256;
+{ const nx=noiseCvs.getContext("2d"); const im=nx.createImageData(256,256);
+  for(let i=0;i<im.data.length;i+=4){const v=(Math.random()*255)|0;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255}
+  nx.putImageData(im,0,0) }
+const fxCvs=document.createElement("canvas"), fxCtx=fxCvs.getContext("2d");
+function applyPostFX(){
+ const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch)return;
+ const W=cv.width,H=cv.height;
+ if(F.glow>0){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H);
+  fxCtx.filter=`blur(${Math.max(2,Math.round(14*F.glow))}px)`; fxCtx.drawImage(cv,0,0); fxCtx.filter="none";
+  ctx.save(); ctx.globalCompositeOperation="screen"; ctx.globalAlpha=0.42*F.glow; ctx.drawImage(fxCvs,0,0); ctx.restore() }
+ if(F.leak>0){ const t=performance.now()/1000; const lx=W*(0.78+0.06*Math.sin(t*0.35)), ly=H*0.10;
+  const g=ctx.createRadialGradient(lx,ly,0,lx,ly,Math.max(W,H)*0.8);
+  g.addColorStop(0,`rgba(255,170,66,${(0.5*F.leak).toFixed(3)})`); g.addColorStop(0.5,`rgba(255,90,60,${(0.18*F.leak).toFixed(3)})`); g.addColorStop(1,"rgba(255,80,40,0)");
+  ctx.save(); ctx.globalCompositeOperation="screen"; ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
+ if(F.glitch){ const cyc=(performance.now()/1000)%2.7;
+  if(cyc<0.16){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H); fxCtx.drawImage(cv,0,0);
+   for(let i=0;i<6;i++){ const y=(Math.random()*H)|0, h=8+((Math.random()*36)|0), dx=((Math.random()*36-18)|0);
+    ctx.drawImage(fxCvs,0,y,W,h,dx,y,W,h) } } }
+ if(F.grain>0){ ctx.save(); ctx.globalAlpha=0.16*F.grain; ctx.globalCompositeOperation="overlay";
+  const pat=ctx.createPattern(noiseCvs,"repeat"); ctx.translate(-((Math.random()*256)|0),-((Math.random()*256)|0));
+  ctx.fillStyle=pat; ctx.fillRect(0,0,W+256,H+256); ctx.restore() }
+ if(F.vig>0){ const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.8);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,`rgba(0,0,0,${(0.62*F.vig).toFixed(3)})`);
+  ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
 }
 let musicFadeIn=0, musicFadeOut=0;
 function loop(){
@@ -451,7 +495,19 @@ const TEMPLATES={
  birthday:{ratio:"9:16",fit:"fit",preset:"Pastel",trans:"flash",texts:d=>[["🎂 Happy Birthday!",{start:0,end:d,size:74,y:16,style:"gold",anim:"pop"}],["Name · Age",{start:0,end:d,size:52,y:26,anim:"fade"}]]},
  business:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",texts:d=>[["COMPANY NAME",{start:0,end:d,size:70,y:14}],["Your slogan here",{start:0,end:d,size:50,y:24,anim:"fade"}],["📞 0600 000 000",{start:0,end:d,size:52,y:87,style:"box"}]]},
  minimal:{ratio:"9:16",fit:"fit",preset:"Fade",trans:"fade",texts:d=>[["less, but better.",{start:0,end:d,size:56,y:48,anim:"fade"}]]},
- podcast:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"none",texts:d=>[["🎙 Podcast Name",{start:0,end:Math.min(3,d),size:58,y:11,style:"box",anim:"slide"}],["“The quote that hooks them…”",{start:0,end:d,size:52,y:85,style:"classic"}]]}
+ podcast:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"none",texts:d=>[["🎙 Podcast Name",{start:0,end:Math.min(3,d),size:58,y:11,style:"box",anim:"slide"}],["“The quote that hooks them…”",{start:0,end:d,size:52,y:85,style:"classic"}]]},
+ wedding:{ratio:"9:16",fit:"fit",preset:"Pastel",trans:"fade",texts:d=>[["💍 Sara & Yassine",{start:0,end:d,size:70,y:44,style:"cursive",anim:"fade"}],["12 · 05 · 2026",{start:0.5,end:d,size:46,y:55,anim:"fade"}]]},
+ motivation:{ratio:"9:16",fit:"fill",preset:"Noir",trans:"zoom",texts:d=>[["DISCIPLINE 🔥",{start:0,end:Math.min(3,d),size:80,y:14,style:"block",anim:"pop"}],["Day 47. Still going.",{start:0,end:d,size:50,y:86,style:"box"}]]},
+ sports:{ratio:"16:9",fit:"fill",preset:"Sharp Pop",trans:"shake",texts:d=>[["GOAL! ⚽",{start:0,end:Math.min(2.5,d),size:96,y:16,style:"pop",anim:"pop"}],["Team 2 — 1 Rivals",{start:0,end:d,size:54,y:86,style:"box"}]]},
+ tech:{ratio:"16:9",fit:"fill",preset:"Cross Process",trans:"slide",texts:d=>[["💻 Gadget Name",{start:0,end:Math.min(3,d),size:66,y:12,style:"type",anim:"slide"}],["Honest review in 60s",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ fashion:{ratio:"9:16",fit:"fit",preset:"Dream",trans:"fade",texts:d=>[["✨ New Drop",{start:0,end:Math.min(3,d),size:72,y:13,style:"grad",anim:"fade"}],["Shop the look 👇",{start:0,end:d,size:50,y:87,style:"sticker"}]]},
+ education:{ratio:"9:16",fit:"fit",preset:"None",trans:"none",texts:d=>[["DID YOU KNOW? 📚",{start:0,end:Math.min(3,d),size:62,y:12,style:"highlight",anim:"slide"}],["The fact in one line",{start:0,end:d,size:50,y:86,style:"box"}]]},
+ unboxing:{ratio:"9:16",fit:"fill",preset:"Vivid",trans:"zoom",texts:d=>[["UNBOXING 📦",{start:0,end:Math.min(2.5,d),size:84,y:13,style:"pop",anim:"pop"}],["Wait for the reveal…",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ storytime:{ratio:"9:16",fit:"fit",preset:"Vintage",trans:"fade",texts:d=>[["Story time 📖",{start:0,end:Math.min(3,d),size:64,y:12,style:"retro",anim:"fade"}],["Part 1 — it gets wild",{start:0,end:d,size:48,y:87}]]},
+ challenge:{ratio:"9:16",fit:"fill",preset:"Teal & Orange",trans:"flash",texts:d=>[["🏆 CHALLENGE",{start:0,end:Math.min(3,d),size:80,y:13,style:"gold",anim:"pop"}],["Can you beat this?",{start:0,end:d,size:52,y:87,style:"box"}],["Try it & tag me",{start:1,end:d,size:46,y:79}]]},
+ recap:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"cross",texts:d=>[["⏪ RECAP",{start:0,end:Math.min(3,d),size:74,y:12,style:"block",anim:"slide"}],["Everything you missed",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ teaser:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"dip",letter:true,texts:d=>[["👀 SOON",{start:0,end:d,size:88,y:50,style:"thin",anim:"fade"}]]},
+ flashsale:{ratio:"9:16",fit:"fit",preset:"Sharp Pop",trans:"flash",texts:d=>[["⚡ FLASH SALE",{start:0,end:Math.min(3,d),size:82,y:13,style:"pop",anim:"pop"}],["-70% · 24h only",{start:0,end:d,size:62,y:24,style:"gold"}],["Link in bio 👇",{start:0.5,end:d,size:52,y:88,style:"box"}]]}
 };
 function applyTemplate(name){
  document.querySelectorAll(".tplchip").forEach(c=>c.classList.toggle("sel",c.dataset.tpl===name));
@@ -645,7 +701,8 @@ function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
  int:filterIntensity,fi:musicFadeIn,fo:musicFadeOut,
  adj:[$("#adjB").value,$("#adjC").value,$("#adjS").value],
  pc:[pcCol.temp,pcCol.tint,pcCol.vib,pcCol.fade],
- m2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)}})}
+ m2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
+ fx:[postfx.vig,postfx.grain,postfx.glow,postfx.leak,postfx.glitch?1:0]})}
 function pushHistory(){
  if(histLock)return;
  const s=snapshotState();
@@ -667,6 +724,9 @@ function applySnapshot(s){
   if(o.adj){["#adjB","#adjC","#adjS"].forEach((id,i)=>{$(id).value=o.adj[i]});["#adjBO","#adjCO","#adjSO"].forEach((id,i)=>{$(id).textContent=o.adj[i]})}
   if(o.pc){pcCol={temp:o.pc[0],tint:o.pc[1],vib:o.pc[2],fade:o.pc[3]};["#pcTemp","#pcTint","#pcVib","#pcFade"].forEach((id,i)=>{$(id).value=o.pc[i];$(id+"O").textContent=o.pc[i]})}
   if(o.m2){$("#music2Sel").value=o.m2.sel||"";$("#music2Sel").dispatchEvent(new Event("change"));$("#music2Vol").value=o.m2.vol!=null?o.m2.vol:80;$("#music2VolO").textContent=$("#music2Vol").value;$("#music2Off").value=o.m2.off||0}
+  if(o.fx){postfx={vig:o.fx[0],grain:o.fx[1],glow:o.fx[2],leak:o.fx[3],glitch:!!o.fx[4]};
+   ["#fxVig","#fxGrain","#fxGlow","#fxLeak"].forEach((id,i)=>{$(id).value=Math.round(o.fx[i]*100);$(id+"O").textContent=Math.round(o.fx[i]*100)});
+   $("#fxGlitch").textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF"}
   stopPlayback(); curSeg=-1;
   renderTimeline(); renderTextList(); renderOverlays(); renderOvPanel(); drawFrame();
  }catch(e){}
@@ -683,7 +743,8 @@ function idb(){ if(idbP)return idbP;
   r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error)}); return idbP}
 function markDirty(){const el=$("#saveState"); if(el)el.textContent="● Saving…";
  clearTimeout(saveTimer); saveTimer=setTimeout(saveProject,2200)}
-async function saveProject(){
+function saveProject(){return saveProjectTo("project")}
+async function saveProjectTo(key,slotName){
  if(!segments.length&&!texts.length&&!overlays.length&&!media.size)return; /* never overwrite a saved project with an empty state */
  try{ const d=await idb(); const tx=d.transaction(["files","state"],"readwrite");
   const fs=tx.objectStore("files");
@@ -695,7 +756,9 @@ async function saveProject(){
   const meta={segments,texts,overlays,midSeq,segSeq,txtSeq,ovSeq,music:$("#musicSel").value,
    music2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
    mediaMeta:[...media.values()].map(m=>({id:m.id,name:m.name,type:m.type,duration:m.duration}))};
-  tx.objectStore("state").put(meta,"project");
+  meta.name=slotName||""; meta.savedAt=Date.now();
+  try{const st=JSON.parse(snapshotState()); delete st.segments; delete st.texts; delete st.overlays; meta.settings=st}catch(e){}
+  tx.objectStore("state").put(meta,key);
   await new Promise(r=>{tx.oncomplete=r;tx.onerror=r});
   const el=$("#saveState"); if(el)el.textContent="✓ Saved on this device";
  }catch(e){}
@@ -706,8 +769,8 @@ async function checkRestore(){
   if(meta&&meta.segments&&meta.segments.length){window.__savedMeta=meta;$("#restoreBar").style.display=""}
  }catch(e){}
 }
-$("#restoreBtn").onclick=async()=>{
- const meta=window.__savedMeta; if(!meta)return;
+async function loadProjectMeta(meta){
+ if(!meta)return;
  $("#restoreBar").style.display="none";
  midSeq=meta.midSeq||midSeq; segSeq=meta.segSeq||segSeq; txtSeq=meta.txtSeq||txtSeq; ovSeq=meta.ovSeq||ovSeq;
  for(const mm of (meta.mediaMeta||[])){
@@ -724,10 +787,29 @@ $("#restoreBtn").onclick=async()=>{
  renderMedia(); renderTimeline(); renderTextList(); renderOverlays();
  if(meta.music){$("#musicSel").value=meta.music;const mm=media.get(meta.music);if(mm)musEl.src=mm.url}
  if(meta.music2){$("#music2Sel").value=meta.music2.sel||"";$("#music2Sel").dispatchEvent(new Event("change"));$("#music2Vol").value=meta.music2.vol!=null?meta.music2.vol:80;$("#music2VolO").textContent=$("#music2Vol").value;$("#music2Off").value=meta.music2.off||0}
+ if(meta.settings){try{const st=meta.settings; st.segments=segments; st.texts=texts; st.overlays=overlays; st.selSeg=selSeg; applySnapshot(JSON.stringify(st))}catch(e){}}
  for(const s of segments){const m=media.get(s.mediaId);if(m&&m.type==="video"&&!m.duration)probeVideo(m,null)}
  hist=[];histIdx=-1;pushHistory();
- flashNow("Project restored ✓");
-};
+ if(segments[0]){selSeg=segments[0].id;loadSegment(0,false)}
+ drawFrame();
+ flashNow("Project loaded ✓");
+}
+$("#restoreBtn").onclick=()=>loadProjectMeta(window.__savedMeta);
+async function refreshSlotLabels(){
+ for(const n of [1,2,3]){ const el=$("#slotLbl"+n); if(!el)continue;
+  const meta=await idbGet("state","slot"+n);
+  el.textContent=meta?`Slot ${n} — ${meta.name||"Project"} · ${new Date(meta.savedAt||Date.now()).toLocaleDateString()}`:`Slot ${n} — empty`;
+ }
+}
+document.querySelectorAll("[data-slot-save]").forEach(b=>b.onclick=async()=>{
+ const n=b.dataset.slotSave;
+ if(!segments.length){flashNow("Nothing to save yet — add a clip first");return}
+ await saveProjectTo("slot"+n,"Project "+n); refreshSlotLabels(); flashNow("Saved to slot "+n+" ✓")});
+document.querySelectorAll("[data-slot-load]").forEach(b=>b.onclick=async()=>{
+ const n=b.dataset.slotLoad; const meta=await idbGet("state","slot"+n);
+ if(!meta){flashNow("Slot "+n+" is empty");return}
+ loadProjectMeta(meta); closeSheets()});
+refreshSlotLabels();
 $("#discardBtn").onclick=async()=>{
  $("#restoreBar").style.display="none"; window.__savedMeta=null;
  try{const d=await idb();const tx=d.transaction(["files","state"],"readwrite");tx.objectStore("files").clear();tx.objectStore("state").delete("project")}catch(e){}

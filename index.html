@@ -157,6 +157,11 @@ a{color:var(--gold2)}
   <div class="media-list" id="mediaList"></div>
   <div class="sub">No files handy?</div>
   <button class="gold bigbtn" id="demoBtn2">▶ Load the demo project (clip + music + template)</button>
+  <div class="sub">💾 Projects on this device</div>
+  <div class="row"><span id="slotLbl1" style="flex:1;font-size:13px;color:var(--mut)">Slot 1 — empty</span><button data-slot-save="1">Save</button><button data-slot-load="1">Load</button></div>
+  <div class="row" style="margin-top:7px"><span id="slotLbl2" style="flex:1;font-size:13px;color:var(--mut)">Slot 2 — empty</span><button data-slot-save="2">Save</button><button data-slot-load="2">Load</button></div>
+  <div class="row" style="margin-top:7px"><span id="slotLbl3" style="flex:1;font-size:13px;color:var(--mut)">Slot 3 — empty</span><button data-slot-save="3">Save</button><button data-slot-load="3">Load</button></div>
+  <p class="hint">The current project also auto-saves as you edit. Loading a slot replaces the editor — save your current work first if it matters.</p>
   <p class="hint" style="margin-top:9px">Everything stays on your device — nothing is uploaded.</p>
 </div>
 
@@ -204,6 +209,11 @@ a{color:var(--gold2)}
     <button>🔥</button><button>❤️</button><button>⭐</button><button>👉</button><button>💰</button><button>🚀</button><button>✅</button><button>🎬</button>
     <button>⬇️</button><button>➡️</button><button>⭕</button><button>💯</button><button>🆕</button><button>🎯</button><button>📢</button><button>👀</button>
     <button>📍</button><button>💬</button><button>😱</button><button>🤯</button><button>👑</button><button>⚡</button><button>🔔</button><button>🏆</button>
+    <button>🎵</button><button>🎧</button><button>🎤</button><button>⚽</button><button>🏀</button><button>🎮</button><button>🚗</button><button>✈️</button>
+    <button>🏝</button><button>🍕</button><button>🍔</button><button>☕</button><button>💡</button><button>📌</button><button>❌</button><button>⏰</button>
+    <button>📣</button><button>🧲</button><button>🛡</button><button>🎁</button><button>🏅</button><button>🥇</button><button>🔝</button><button>💪</button>
+    <button>🫶</button><button>👍</button><button>🤝</button><button>🙏</button><button>😂</button><button>🥹</button><button>😍</button><button>👏</button>
+    <button>🙌</button><button>💸</button><button>📈</button><button>🌟</button>
   </div>
   <div class="sub">Quick captions — one line = one caption (2.5s each, burned into the export)</div>
   <div class="field"><textarea id="capLines" rows="3" placeholder="Paste or type your caption lines here, one per line…" style="width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px"></textarea></div>
@@ -235,6 +245,12 @@ a{color:var(--gold2)}
   <div class="slider-row"><span>Tint</span><input type="range" id="pcTint" min="-100" max="100" value="0"><output id="pcTintO">0</output></div>
   <div class="slider-row"><span>Vibrance</span><input type="range" id="pcVib" min="-100" max="100" value="0"><output id="pcVibO">0</output></div>
   <div class="slider-row"><span>Faded blacks</span><input type="range" id="pcFade" min="0" max="100" value="0"><output id="pcFadeO">0</output></div>
+  <div class="sub">Post FX — whole video</div>
+  <div class="slider-row"><span>Vignette</span><input type="range" id="fxVig" min="0" max="100" value="0"><output id="fxVigO">0</output></div>
+  <div class="slider-row"><span>Film grain</span><input type="range" id="fxGrain" min="0" max="100" value="0"><output id="fxGrainO">0</output></div>
+  <div class="slider-row"><span>Glow</span><input type="range" id="fxGlow" min="0" max="100" value="0"><output id="fxGlowO">0</output></div>
+  <div class="slider-row"><span>Light leak</span><input type="range" id="fxLeak" min="0" max="100" value="0"><output id="fxLeakO">0</output></div>
+  <div class="row"><button id="fxGlitch">📺 Glitch bursts: OFF</button></div>
   <div class="sub">Filter intensity</div>
   <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
   <div class="sub">Transition between clips</div>
@@ -251,6 +267,8 @@ a{color:var(--gold2)}
     <option value="spin">Spin in</option>
     <option value="blur">Blur fade</option>
     <option value="shake">Glitch shake</option>
+    <option value="slideup">Slide up</option>
+    <option value="zoomout">Zoom out settle</option>
   </select>
 </div>
 
@@ -273,6 +291,8 @@ a{color:var(--gold2)}
   <select id="resSel" style="width:100%">
     <option value="1" selected>Standard (720-wide · faster)</option>
     <option value="1.5">HD (1080-wide · sharper, slower)</option>
+    <option value="2">QHD (1440-wide · much slower)</option>
+    <option value="3">4K (2160-wide · desktop recommended)</option>
   </select></div>
 </div>
 
@@ -300,13 +320,25 @@ a{color:var(--gold2)}
     <button class="tplchip" data-tpl="business">💼 Business</button>
     <button class="tplchip" data-tpl="minimal">◻ Minimal</button>
     <button class="tplchip" data-tpl="podcast">🎙 Podcast Clip</button>
+    <button class="tplchip" data-tpl="wedding">💍 Wedding</button>
+    <button class="tplchip" data-tpl="motivation">🔥 Motivation</button>
+    <button class="tplchip" data-tpl="sports">⚽ Sports</button>
+    <button class="tplchip" data-tpl="tech">💻 Tech Review</button>
+    <button class="tplchip" data-tpl="fashion">👗 Fashion</button>
+    <button class="tplchip" data-tpl="education">📚 Education</button>
+    <button class="tplchip" data-tpl="unboxing">📦 Unboxing</button>
+    <button class="tplchip" data-tpl="storytime">📖 Story Time</button>
+    <button class="tplchip" data-tpl="challenge">🏆 Challenge</button>
+    <button class="tplchip" data-tpl="recap">⏪ Recap</button>
+    <button class="tplchip" data-tpl="teaser">👀 Teaser</button>
+    <button class="tplchip" data-tpl="flashsale">⚡ Flash Sale</button>
     <button class="tplchip" data-tpl="none">✖ Clear template</button>
   </div>
   <div class="sub">Start instantly</div>
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v7 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v8 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
