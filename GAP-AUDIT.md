@@ -85,3 +85,16 @@ simpler, faster, no-account, no-watermark tool.
   **Re-score: 25 → ≈35/100.** Moved: layers 3→5, cutting 7→8.5, transforms
   1→6, projects 1→4, export 3→5.5, UX 5→6. Still at/near zero: keyframe
   animation (0), AI tools (0.5), media/stock (1), templates (2) — Phases B/C.
+- **2026-10-21 · Phase B shipped (v5)** — 11 transitions incl. a TRUE crossfade
+  (previous-frame capture + dissolve), slide/wipe/iris/spin/blur/shake/fade;
+  text animations (fade/pop/slide/drop) + 6 text styles (classic/gold/neon/
+  box/highlight/outline); music fade in/out + per-clip volume; freeze frame
+  (captures the paused frame, splits the clip, inserts a 2s still); reverse
+  clip via ffmpeg.wasm (verified: reversed-demo.mp4 produced on-device);
+  14 filter presets + intensity slider; 24 stickers. All QA-verified at 390px,
+  0 console errors.
+  **Re-score: ≈35 → ≈44/100.** Moved: cutting 8.5→9, animation 0→2, speed
+  3→4.5, color 3→4.5, text 4→6, audio 2→4.5, effects/transitions 2→5.5,
+  UX 6→6.5. Next: Phase C (chroma key, on-device Whisper captions, MediaPipe
+  background removal, 20 templates) → then Phase D pro depth (keyframes, speed
+  curves, HSL/curves color, multi-track audio, timeline drag).

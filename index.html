@@ -163,6 +163,11 @@ a{color:var(--gold2)}
     <button id="dupBtn">⧉ Duplicate</button>
     <button class="danger" id="delSegBtn">🗑 Delete</button>
   </div>
+  <div class="row" style="margin-top:9px">
+    <button id="freezeBtn">❄ Freeze frame</button>
+    <button id="revBtn">⏪ Reverse clip</button>
+  </div>
+  <p class="hint" style="margin-top:7px">Freeze: pause playback on the frame you want, then tap Freeze. Reverse creates a reversed copy of the selected clip (on-device, 60s max).</p>
   <div class="sub">Overlay (picture-in-picture)</div>
   <div id="ovPanel"><p class="hint">In Media, tap “＋ PiP” on any video or photo to place it on top of your main video. Then tap its bar on the overlay track to move, resize or retime it.</p></div>
 </div>
@@ -172,6 +177,12 @@ a{color:var(--gold2)}
   <div class="field"><label>Background music (add an audio file in Media)</label><select id="musicSel" style="width:100%"><option value="">— none —</option></select></div>
   <div class="slider-row"><span>Music vol</span><input type="range" id="musicVol" min="0" max="100" value="35"><output id="musicVolO">35</output></div>
   <div class="slider-row"><span>Video vol</span><input type="range" id="videoVol" min="0" max="100" value="100"><output id="videoVolO">100</output></div>
+  <div class="sub">Music fades</div>
+  <div class="row">
+    <div class="field"><label>Fade in (seconds)</label><input type="number" id="fadeInS" min="0" max="10" step="0.5" value="0" style="width:100%"></div>
+    <div class="field"><label>Fade out (seconds)</label><input type="number" id="fadeOutS" min="0" max="10" step="0.5" value="0" style="width:100%"></div>
+  </div>
+  <p class="hint">Tip: each clip also has its own volume — select a clip in Edit.</p>
 </div>
 
 <div class="sheet" id="sheet-text">
@@ -181,6 +192,8 @@ a{color:var(--gold2)}
   <div class="sub">Stickers — tap to add</div>
   <div class="stickers" id="stickers">
     <button>🔥</button><button>❤️</button><button>⭐</button><button>👉</button><button>💰</button><button>🚀</button><button>✅</button><button>🎬</button>
+    <button>⬇️</button><button>➡️</button><button>⭕</button><button>💯</button><button>🆕</button><button>🎯</button><button>📢</button><button>👀</button>
+    <button>📍</button><button>💬</button><button>😱</button><button>🤯</button><button>👑</button><button>⚡</button><button>🔔</button><button>🏆</button>
   </div>
   <div class="sub">Quick captions — one line = one caption (2.5s each, burned into the export)</div>
   <div class="field"><textarea id="capLines" rows="3" placeholder="Paste or type your caption lines here, one per line…" style="width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px"></textarea></div>
@@ -196,12 +209,22 @@ a{color:var(--gold2)}
   <div class="slider-row"><span>Brightness</span><input type="range" id="adjB" min="50" max="150" value="100"><output id="adjBO">100</output></div>
   <div class="slider-row"><span>Contrast</span><input type="range" id="adjC" min="50" max="150" value="100"><output id="adjCO">100</output></div>
   <div class="slider-row"><span>Saturation</span><input type="range" id="adjS" min="0" max="200" value="100"><output id="adjSO">100</output></div>
+  <div class="sub">Filter intensity</div>
+  <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
   <div class="sub">Transition between clips</div>
   <select id="transSel" style="width:100%">
     <option value="none">None</option>
+    <option value="cross">Crossfade (dissolve)</option>
     <option value="dip">Dip to black</option>
+    <option value="fade">Fade in</option>
     <option value="flash">Flash</option>
     <option value="zoom">Zoom punch</option>
+    <option value="slide">Slide in</option>
+    <option value="wipe">Wipe</option>
+    <option value="iris">Circle open</option>
+    <option value="spin">Spin in</option>
+    <option value="blur">Blur fade</option>
+    <option value="shake">Glitch shake</option>
   </select>
 </div>
 
@@ -242,7 +265,7 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v4 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v5 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
