@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CutVault — Free Web Video Editor</title>
+<meta name="description" content="CutVault is a free browser video editor: multi-clip timeline, trim, split, text, filters, music and export. No uploads — your videos never leave your device.">
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#0c0e13;--panel:#14171f;--panel2:#1a1e28;--line:#262b38;--txt:#eef1f7;--mut:#8b93a5;--gold:#e8b33c;--gold2:#f5cd63;--red:#e5484d;--green:#35c26e;--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;background:var(--panel2);color:var(--txt);padding:8px 14px;font-size:13px;font-weight:600;transition:.15s}
+button:hover{background:#232837}
+button.gold{background:linear-gradient(135deg,var(--gold),#c8912a);color:#171106}
+button.gold:hover{filter:brightness(1.08)}
+button.danger{background:#3a1d20;color:#ff9a9e}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{font-family:inherit;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:13px}
+input[type=range]{padding:0;accent-color:var(--gold)}
+label{font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.logo{font-size:20px;font-weight:900;letter-spacing:-.02em}.logo span{color:var(--gold)}
+.tagline{font-size:11px;color:var(--mut)}
+header .sp{flex:1}
+main{flex:1;display:grid;grid-template-columns:250px 1fr 290px;gap:0;min-height:0}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:14px;overflow-y:auto}
+aside.right{border-right:none;border-left:1px solid var(--line)}
+aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:16px 0 9px}
+aside h3:first-child{margin-top:0}
+.drop{border:1.6px dashed #39415a;border-radius:var(--radius);padding:18px 12px;text-align:center;color:var(--mut);font-size:13px;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--gold);color:var(--gold2);background:#1c1a12}
+.media-list{display:flex;flex-direction:column;gap:8px}
+.media-item{display:flex;gap:9px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:7px}
+.media-item img{width:52px;height:34px;object-fit:cover;border-radius:6px;background:#000}
+.media-item .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-item .mt{font-size:10px;color:var(--mut)}
+.media-item button{margin-left:auto;padding:5px 9px;font-size:11px}
+.stage{display:flex;flex-direction:column;background:#08090d;min-width:0}
+.canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;min-height:280px}
+canvas{background:#000;border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.55);max-width:100%;max-height:62vh}
+.transport{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.transport .time{font-variant-numeric:tabular-nums;font-size:13px;color:var(--mut)}
+.transport .time b{color:var(--txt)}
+.playbtn{width:42px;height:42px;border-radius:50%;background:var(--gold);color:#171106;font-size:16px;display:flex;align-items:center;justify-content:center}
+.timeline-sec{background:var(--panel);border-top:1px solid var(--line);padding:12px 16px 16px}
+.tl-head{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.tl-head h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-right:6px}
+.timeline{position:relative;background:#0a0c10;border:1px solid var(--line);border-radius:11px;min-height:74px;padding:8px;overflow-x:auto}
+.tl-track{display:flex;gap:6px;align-items:stretch;min-height:56px}
+.seg{position:relative;border:2px solid #333b52;border-radius:9px;overflow:hidden;cursor:pointer;flex:none;background:#11141d;min-width:64px}
+.seg.sel{border-color:var(--gold)}
+.seg img{width:100%;height:38px;object-fit:cover;display:block;background:#000}
+.seg .sg-t{font-size:10px;padding:3px 6px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg .sg-d{position:absolute;top:3px;right:5px;font-size:10px;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px;color:#fff}
+.tl-empty{color:var(--mut);font-size:13px;padding:18px 8px}
+.tl-texts{margin-top:7px;font-size:11px;color:var(--mut)}
+.tl-texts .tx{display:inline-block;background:#2a2110;border:1px solid #554311;color:var(--gold2);border-radius:6px;padding:2px 7px;margin:2px 3px 0 0;cursor:pointer}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.field{margin-bottom:11px}
+.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.preset{padding:9px 4px;font-size:11px;text-align:center}
+.preset.sel{outline:2px solid var(--gold);background:#2a2110}
+.text-item{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:9px}
+.text-item.sel{outline:2px solid var(--gold)}
+.slider-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.slider-row span{font-size:11px;color:var(--mut);width:74px;flex:none}
+.slider-row output{font-size:11px;width:30px;text-align:right;color:var(--gold2)}
+.progress{display:none;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:10px}
+.progress .bar{height:8px;background:#0a0c10;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%}
+.hint{font-size:11px;color:var(--mut);line-height:1.55}
+.kbd{background:#232837;border-radius:5px;padding:1px 6px;font-size:11px}
+footer{padding:9px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--mut);display:flex;gap:10px;flex-wrap:wrap;background:var(--panel)}
+a{color:var(--gold2)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Cut<span>Vault</span></div>
+    <div class="tagline">Free web video editor — by CineVault</div>
+  </div>
+  <div class="sp"></div>
+  <select id="ratioSel" title="Canvas ratio">
+    <option value="16:9">16:9 YouTube</option>
+    <option value="9:16" selected>9:16 Reels / TikTok</option>
+    <option value="1:1">1:1 Square</option>
+    <option value="4:5">4:5 Feed</option>
+  </select>
+  <select id="fitSel" title="Fit mode">
+    <option value="fit" selected>Fit + blurred bg</option>
+    <option value="fill">Fill (crop)</option>
+    <option value="black">Fit + black bg</option>
+  </select>
+  <button class="gold" id="exportBtn">⬇ Export video</button>
+</header>
+<main>
+  <aside>
+    <h3>Media</h3>
+    <div class="drop" id="drop">＋ Click or drop videos, images &amp; music here</div>
+    <input type="file" id="fileIn" accept="video/*,image/*,audio/*" multiple hidden>
+    <div style="height:10px"></div>
+    <div class="media-list" id="mediaList"></div>
+    <h3>Music track</h3>
+    <div class="field"><label>Background music</label><select id="musicSel" style="width:100%"><option value="">— none —</option></select></div>
+    <div class="slider-row"><span>Music vol</span><input type="range" id="musicVol" min="0" max="100" value="35"><output id="musicVolO">35</output></div>
+    <div class="slider-row"><span>Video vol</span><input type="range" id="videoVol" min="0" max="100" value="100"><output id="videoVolO">100</output></div>
+    <h3>How it works</h3>
+    <p class="hint">1. Add media → clips land on the timeline in order.<br>2. Click a clip to trim, split or change speed.<br>3. Add timed text, pick a filter, set the ratio.<br>4. Export — rendering happens <b>100% in your browser</b>. Nothing is uploaded anywhere.</p>
+  </aside>
+
+  <section class="stage">
+    <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas></div>
+    <div class="transport">
+      <button class="playbtn" id="playBtn">▶</button>
+      <button id="restartBtn" title="Back to start">⏮</button>
+      <div class="time"><b id="tCur">0:00.0</b> / <span id="tDur">0:00.0</span></div>
+      <div class="sp" style="flex:1"></div>
+      <span class="hint" id="nowPlaying">No media yet — add a clip to start</span>
+    </div>
+    <div class="timeline-sec">
+      <div class="tl-head">
+        <h3>Timeline</h3>
+        <button id="splitBtn">✂ Split at playhead</button>
+        <button id="dupBtn">⧉ Duplicate clip</button>
+        <button class="danger" id="delSegBtn">🗑 Delete clip</button>
+      </div>
+      <div class="timeline"><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
+      <div class="tl-texts" id="tlTexts"></div>
+      <div class="progress" id="expProg"><b id="expLabel">Rendering…</b><div class="bar"><i id="expBar"></i></div><p class="hint" style="margin-top:7px">Keep this tab open — export runs in real time (a 30s video takes ~30s).</p></div>
+      <div id="expDone" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <h3>Clip</h3>
+    <div id="segPanel"><p class="hint">Select a clip on the timeline to trim it.</p></div>
+    <h3>Filters</h3>
+    <div class="preset-grid" id="presets"></div>
+    <div style="height:10px"></div>
+    <div class="slider-row"><span>Brightness</span><input type="range" id="adjB" min="50" max="150" value="100"><output id="adjBO">100</output></div>
+    <div class="slider-row"><span>Contrast</span><input type="range" id="adjC" min="50" max="150" value="100"><output id="adjCO">100</output></div>
+    <div class="slider-row"><span>Saturation</span><input type="range" id="adjS" min="0" max="200" value="100"><output id="adjSO">100</output></div>
+    <h3>Text overlays</h3>
+    <div class="field"><label>New text</label><input id="newText" placeholder="Type a title or caption…" style="width:100%"></div>
+    <button class="gold" id="addTextBtn" style="width:100%">＋ Add text at playhead</button>
+    <div style="height:10px"></div>
+    <div id="textList"></div>
+  </aside>
+</main>
+<footer>
+  <span>CutVault v1 — an original CineVault product. Inspired by modern editor workflows; not affiliated with CapCut / ByteDance.</span>
+  <span style="flex:1"></span>
+  <span>Privacy: files never leave your device.</span>
+</footer>
+<video id="vid" playsinline style="display:none"></video>
+<img id="imgEl" style="display:none" alt="">
+<audio id="musEl" loop style="display:none"></audio>
+<script src="editor.js"></script>
+</body>
+</html>
