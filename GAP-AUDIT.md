@@ -162,3 +162,7 @@ simpler, faster, no-account, no-watermark tool.
 ## Progress — Phase G (v10, 2026-10-22)
 Per-clip color (own preset + B/C/S + intensity per segment, overriding global) · 3-point keyframes (middle keyframe with position % + zoom/X/opacity; verified z=1.497 vs exact 1.5 mid-leg math) · beat detection on Track-1 music (energy-flux onsets; 12 beats found in demo music, ticks rendered under the timeline) · **beat-split** (selected clip auto-cut at the beats: 1 → 13 pieces, exact) · audio waveforms inside timeline chips · keyboard shortcuts (Space/S/Delete/Ctrl+Z/Y). A render-triggered peaks retry loop that froze the page was found in QA and fixed with a one-shot guard.
 **Re-scored total: ≈ 68/100** (was 63).
+
+## Progress — Phase H (v11, 2026-10-22)
+Libraries deepened: templates 32 → **48** (podcast, lyrics, meme, fitness, cooking, study, birthday, wedding invite, graduation, Ramadan, luxury estate, sport news, unbox pro, travel pro, new year, pets), text styles → **17** (+marker highlight, wide letter-spacing, double outline — pixel-verified), stickers → **84**, transitions → **16** (+flip-in verified squeezed to a sliver at t=0, +bounce). PiP overlays gained opacity. Track-1 music gained a trim-in point ("Music starts at") with loop-wrap. New workflow tools: **Replace clip media** (swap footage, keep trims/speed/effects — verified m1→m2) and a custom export file name.
+**Re-scored total: ≈ 71/100** (was 68).

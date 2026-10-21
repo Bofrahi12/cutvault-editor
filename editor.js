@@ -156,7 +156,7 @@ function renderSegPanel(){
  const L=$("#spLeft"),R=$("#spRight"),i=segments.indexOf(s);
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
- wireTF(s); wireSmart(s,p); wireClipFx(s,p);
+ wireTF(s); wireSmart(s,p); wireClipFx(s,p); wireReplace(s,p);
 }
 let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeout(renderTimeline,350)}
 $("#splitBtn").onclick=()=>{
@@ -226,7 +226,7 @@ function renderTextList(){
   <div class="field"><label>Color</label><input type="color" value="${t.color}" data-k="color" style="width:100%;height:34px;padding:2px"></div></div>
   <div class="row"><div class="field"><label>↔ Position %</label><input type="number" min="0" max="100" value="${t.x}" data-k="x"></div>
   <div class="field"><label>↕ Position %</label><input type="number" min="0" max="100" value="${t.y}" data-k="y"></div></div>
-  <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","outline","retro","block","cursive","type","grad","pop","thin","sticker"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
+  <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","marker","outline","retro","block","cursive","type","grad","pop","thin","sticker","wide","double"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
   <div class="field"><label>Animation</label><select data-k="anim" style="width:100%">${["none","fade","pop","slide","drop"].map(v=>`<option value="${v}" ${(t.anim||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div></div>
   <button class="danger" style="width:100%">Delete text</button>`;
   d.onclick=()=>{selText=t.id;renderTextList();renderTextTrack()};
@@ -264,9 +264,9 @@ $("#playBtn").onclick=()=>{
  playing=true;$("#playBtn").textContent="⏸";
  if(curSeg<0||curSeg>=segments.length)loadSegment(0,true); else {const s=segments[curSeg],m=media.get(s.mediaId);
    if(m&&m.type==="image"){imgSegStart=performance.now()-(progTime()-segStart(curSeg))*1000;scheduleImageEnd(s)} else vid.play().catch(()=>{})}
- if($("#musicSel").value){musEl.currentTime=progTime()% (musEl.duration||1); musEl.play().catch(()=>{})}
+ if($("#musicSel").value){const md=musEl.duration||1;musEl.currentTime=musicIn+(progTime()%Math.max(0.1,md-musicIn)); musEl.play().catch(()=>{})}
 };
-$("#restartBtn").onclick=()=>{if(!segments.length)return;const w=playing;stopPlayback();playing=w;$("#playBtn").textContent=w?"⏸":"▶";loadSegment(0,w);if(w&&$("#musicSel").value){musEl.currentTime=0;musEl.play().catch(()=>{})}};
+$("#restartBtn").onclick=()=>{if(!segments.length)return;const w=playing;stopPlayback();playing=w;$("#playBtn").textContent=w?"⏸":"▶";loadSegment(0,w);if(w&&$("#musicSel").value){musEl.currentTime=musicIn;musEl.play().catch(()=>{})}};
 vid.addEventListener("ended",()=>{if(playing)nextSegment()});
 vid.addEventListener("timeupdate",()=>{const s=segments[curSeg];if(!s)return;const m=media.get(s.mediaId);
  if(m&&m.type!=="image"&&vid.currentTime>=s.out-0.03&&playing)nextSegment()});
@@ -320,7 +320,9 @@ function drawFrame(){
       ctx.save();ctx.globalAlpha=alpha*OP;if(useF)ctx.filter=filterStr(s)+(blurPx?` blur(${blurPx}px)`:"");
       let sc; if(fit==="fill")sc=Math.max(W/sw,H/sh); else sc=Math.min(W/sw,H/sh);
       sc*=zoomK*Z*spinS;
-      const dw=sw*sc, dh=sh*sc;
+      let dw=sw*sc, dh=sh*sc;
+      if(curTransition==="flip")dw*=Math.max(0.06,Math.sin(Math.min(1,tp)*Math.PI/2));
+      if(curTransition==="bounce"){const bb=1+0.13*Math.sin(Math.min(1,tp)*Math.PI)*(1-tp);dw*=bb;dh*=bb}
       ctx.translate(W/2+(OX/100)*W+slideX+shX, H/2+(OY/100)*H+shY+slideYv);
       if(s.flip)ctx.scale(-1,1);
       if(s.track&&trackPt){const sx2=Math.max(-(dw-W)/2,Math.min((dw-W)/2,-(trackPt.x-0.5)*dw)), sy2=Math.max(-(dh-H)/2,Math.min((dh-H)/2,-(trackPt.y-0.5)*dh)); ctx.translate(sx2,sy2)}
@@ -366,13 +368,15 @@ function drawFrame(){
     else { ctx.fillStyle=done?(t.color||"#ffffff"):"rgba(255,255,255,0.45)"; ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=5; ctx.fillText(wd.w,cxw,0); ctx.shadowBlur=0 }
     cx2+=wpx+spaceW });
    ctx.restore(); continue }
-  if(style==="box"||style==="highlight"||style==="sticker"){const pad=fs*0.32;ctx.fillStyle=style==="box"?"rgba(0,0,0,0.58)":style==="sticker"?"#ffffff":"#f5cd63";
+  if(style==="box"||style==="highlight"||style==="sticker"||style==="marker"){const pad=fs*0.32;ctx.fillStyle=style==="box"?"rgba(0,0,0,0.58)":style==="sticker"?"#ffffff":style==="marker"?"rgba(245,205,99,0.55)":"#f5cd63";
    ctx.beginPath();ctx.roundRect(-mw/2-pad,-fs*0.72,mw+pad*2,fs*1.44,fs*0.28);ctx.fill()}
+  if(style==="wide"){try{ctx.letterSpacing="7px"}catch(e){}}
+  if(style==="double"){ctx.save();ctx.lineWidth=fs/4.5;ctx.strokeStyle="#f5cd63";ctx.lineJoin="round";ctx.strokeText(t.content,0,0);ctx.lineWidth=fs/9;ctx.strokeStyle="rgba(0,0,0,0.9)";ctx.strokeText(t.content,0,0);ctx.restore()}
   if(style==="retro"||style==="pop"){ctx.save();ctx.shadowBlur=0;ctx.fillStyle=style==="retro"?"#e4572e":"#141414";ctx.fillText(t.content,fs*0.07,fs*0.08);ctx.restore()}
   if(style!=="neon"&&(t.stroke||style==="gold"||style==="outline"||style==="block"||style==="pop"||style==="retro")){ctx.lineWidth=style==="outline"?fs/7:style==="block"?fs/5.5:style==="pop"?fs/7:style==="retro"?fs/10:fs/9;ctx.strokeStyle=style==="gold"?"rgba(60,35,0,0.9)":style==="retro"?"#7c2d12":"rgba(0,0,0,0.88)";ctx.lineJoin="round";ctx.strokeText(t.content,0,0)}
   if(style!=="outline"){
    if(style==="grad"){const gr=ctx.createLinearGradient(0,-fs/2,0,fs/2);gr.addColorStop(0,"#f5cd63");gr.addColorStop(0.55,"#ff7ad9");gr.addColorStop(1,"#7d7aff");ctx.fillStyle=gr}
-   else ctx.fillStyle=style==="gold"?"#f5cd63":style==="neon"?"#7df9ff":style==="highlight"?"#141414":style==="sticker"?"#141414":style==="retro"?"#ffe8c9":style==="block"?"#ffffff":t.color;
+   else ctx.fillStyle=style==="gold"?"#f5cd63":style==="neon"?"#7df9ff":style==="highlight"?"#141414":style==="sticker"?"#141414":style==="marker"?"#141414":style==="retro"?"#ffe8c9":style==="block"?"#ffffff":t.color;
    ctx.shadowColor=style==="neon"?"#19c8e8":"rgba(0,0,0,.45)";ctx.shadowBlur=style==="neon"?26:style==="thin"?0:6;ctx.fillText(t.content,0,0)}
   ctx.restore()}
  if(!segments.length){
@@ -408,7 +412,7 @@ function applyPostFX(){
   g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,`rgba(0,0,0,${(0.62*F.vig).toFixed(3)})`);
   ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
 }
-let musicFadeIn=0, musicFadeOut=0;
+let musicFadeIn=0, musicFadeOut=0, musicIn=0;
 function loop(){
  $("#tCur").textContent=fmt(progTime());
  if(playing||exporting)drawFrame();
@@ -500,7 +504,7 @@ function finishExportBlob(){
  $("#expBar").style.width="100%"; $("#expLabel").textContent="Export complete ✓";
  $("#expDone").innerHTML=`<div class="text-item"><b>Your video is ready</b> — ${mb} MB · WebM<div style="height:8px"></div>
   <video src="${url}" controls style="width:100%;border-radius:9px;background:#000"></video>
-  <div style="height:8px"></div><a href="${url}" download="cutvault-export.webm"><button class="gold" style="width:100%">⬇ Download WebM</button></a>
+  <div style="height:8px"></div><a href="${url}" download="${expFileName()}.webm"><button class="gold" style="width:100%">⬇ Download WebM</button></a>
   <div class="row" style="margin-top:9px"><select id="mp4Q"><option value="23">MP4 · Balanced</option><option value="18">MP4 · High quality</option><option value="28">MP4 · Small file</option></select>
   <button id="mp4Btn" class="gold">🎬 Convert to MP4</button></div>
   <p class="hint" id="mp4State" style="margin-top:7px">MP4 conversion runs on your device too (first time downloads a ~31 MB converter — needs internet once).</p>
@@ -545,7 +549,23 @@ const TEMPLATES={
  challenge:{ratio:"9:16",fit:"fill",preset:"Teal & Orange",trans:"flash",texts:d=>[["🏆 CHALLENGE",{start:0,end:Math.min(3,d),size:80,y:13,style:"gold",anim:"pop"}],["Can you beat this?",{start:0,end:d,size:52,y:87,style:"box"}],["Try it & tag me",{start:1,end:d,size:46,y:79}]]},
  recap:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"cross",texts:d=>[["⏪ RECAP",{start:0,end:Math.min(3,d),size:74,y:12,style:"block",anim:"slide"}],["Everything you missed",{start:0,end:d,size:50,y:87,style:"box"}]]},
  teaser:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"dip",letter:true,texts:d=>[["👀 SOON",{start:0,end:d,size:88,y:50,style:"thin",anim:"fade"}]]},
- flashsale:{ratio:"9:16",fit:"fit",preset:"Sharp Pop",trans:"flash",texts:d=>[["⚡ FLASH SALE",{start:0,end:Math.min(3,d),size:82,y:13,style:"pop",anim:"pop"}],["-70% · 24h only",{start:0,end:d,size:62,y:24,style:"gold"}],["Link in bio 👇",{start:0.5,end:d,size:52,y:88,style:"box"}]]}
+ flashsale:{ratio:"9:16",fit:"fit",preset:"Sharp Pop",trans:"flash",texts:d=>[["⚡ FLASH SALE",{start:0,end:Math.min(3,d),size:82,y:13,style:"pop",anim:"pop"}],["-70% · 24h only",{start:0,end:d,size:62,y:24,style:"gold"}],["Link in bio 👇",{start:0.5,end:d,size:52,y:88,style:"box"}]]},
+ podcast:{ratio:"16:9",fit:"fit",preset:"Warm",trans:"fade",texts:d=>[["🎙 NEW EPISODE",{start:0,end:Math.min(3,d),size:74,y:14,style:"block",anim:"slide"}],["Full episode on the channel",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ lyrics:{ratio:"9:16",fit:"fill",preset:"Dream",trans:"cross",texts:d=>[["🎵",{start:0,end:Math.min(2,d),size:80,y:16,style:"grad",anim:"pop"}],["Sing along 🎤",{start:0,end:d,size:56,y:82,style:"marker"}]]},
+ meme:{ratio:"1:1",fit:"fit",preset:"Sharp Pop",trans:"shake",texts:d=>[["POV:",{start:0,end:d,size:84,y:10,style:"block"}],["😂",{start:0,end:d,size:70,y:88,style:"pop",anim:"pop"}]]},
+ fitness:{ratio:"9:16",fit:"fill",preset:"Noir",trans:"zoom",texts:d=>[["💪 DAY 1",{start:0,end:Math.min(3,d),size:80,y:13,style:"block",anim:"pop"}],["No excuses — let's go",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ cooking:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"slideup",texts:d=>[["👨‍🍳 Today's recipe",{start:0,end:Math.min(3,d),size:66,y:12,style:"gold",anim:"slide"}],["Full recipe in caption 👇",{start:0,end:d,size:48,y:88,style:"sticker"}]]},
+ study:{ratio:"16:9",fit:"fit",preset:"Clean Airy",trans:"fade",texts:d=>[["📚 Study with me",{start:0,end:Math.min(3,d),size:70,y:13,style:"thin",anim:"fade"}],["Pomodoro · 25 min focus",{start:0,end:d,size:46,y:88}]]},
+ birthday:{ratio:"9:16",fit:"fit",preset:"Golden Hour",trans:"flash",texts:d=>[["🎂 Happy Birthday!",{start:0,end:Math.min(3,d),size:76,y:14,style:"grad",anim:"pop"}],["Make a wish ✨",{start:0,end:d,size:52,y:87,style:"sticker"}]]},
+ weddinginvite:{ratio:"9:16",fit:"fit",preset:"Dream",trans:"cross",texts:d=>[["💍 Save the date",{start:0,end:Math.min(3,d),size:72,y:14,style:"cursive",anim:"fade"}],["Details coming soon",{start:0,end:d,size:46,y:88,style:"thin"}]]},
+ graduation:{ratio:"9:16",fit:"fill",preset:"Cinematic",trans:"zoom",texts:d=>[["🎓 WE DID IT",{start:0,end:Math.min(3,d),size:80,y:13,style:"gold",anim:"pop"}],["Class of 2026",{start:0,end:d,size:54,y:87,style:"box"}]]},
+ ramadan:{ratio:"9:16",fit:"fit",preset:"Golden Hour",trans:"fade",texts:d=>[["🌙 Ramadan Kareem",{start:0,end:Math.min(3,d),size:70,y:13,style:"gold",anim:"fade"}],["تقبل الله منا ومنكم",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ luxuryestate:{ratio:"16:9",fit:"fill",preset:"Cinematic",trans:"cross",letter:true,texts:d=>[["🏛 LUXURY LIVING",{start:0,end:Math.min(3,d),size:72,y:13,style:"thin",anim:"fade"}],["Private viewing — DM us",{start:0,end:d,size:48,y:88,style:"gold"}]]},
+ sportnews:{ratio:"16:9",fit:"fill",preset:"Sharp Pop",trans:"slide",texts:d=>[["⚽ MATCH DAY",{start:0,end:Math.min(3,d),size:84,y:12,style:"block",anim:"slide"}],["Lineups & highlights",{start:0,end:d,size:50,y:88,style:"box"}]]},
+ unboxpro:{ratio:"9:16",fit:"fit",preset:"Clean Airy",trans:"bounce",texts:d=>[["📦 What's inside?",{start:0,end:Math.min(3,d),size:74,y:13,style:"pop",anim:"pop"}],["Watch till the end 👀",{start:0,end:d,size:50,y:87,style:"marker"}]]},
+ travelpro:{ratio:"16:9",fit:"fill",preset:"Teal & Orange",trans:"flip",texts:d=>[["✈️ NEXT STOP",{start:0,end:Math.min(3,d),size:80,y:13,style:"grad",anim:"slide"}],["Travel diary · ep. 1",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ newyear:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎆 NEW YEAR",{start:0,end:Math.min(3,d),size:84,y:13,style:"grad",anim:"pop"}],["New goals — let's go 🚀",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ petfun:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"bounce",texts:d=>[["🐶 Meet the star",{start:0,end:Math.min(3,d),size:70,y:13,style:"marker",anim:"pop"}],["Follow for daily cuteness",{start:0,end:d,size:48,y:88,style:"sticker"}]]}
 };
 function applyTemplate(name){
  document.querySelectorAll(".tplchip").forEach(c=>c.classList.toggle("sel",c.dataset.tpl===name));
@@ -696,7 +716,7 @@ function drawOverlays(pt){
   else if(m.type==="video"&&!vidUsed){ vidUsed=true; if(vid2.dataset.mid!==m.id){vid2.src=m.url;vid2.dataset.mid=m.id} if(vid2.readyState>=2){src=vid2;sw=vid2.videoWidth;sh=vid2.videoHeight} }
   if(!src||!sw)continue;
   const w=cv.width*(ov.scale/100), h=w*sh/sw;
-  ctx.save(); ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=12;
+  ctx.save(); ctx.globalAlpha=ov.op!=null?ov.op:1; ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=12;
   ctx.drawImage(src, cv.width*ov.x/100-w/2, cv.height*ov.y/100-h/2, w, h); ctx.restore();
  }
 }
@@ -722,12 +742,15 @@ function renderOvPanel(){
  <div class="slider-row"><span>Size</span><input type="range" id="ovScale" min="10" max="85" value="${ov.scale}"><output>${ov.scale}%</output></div>
  <div class="slider-row"><span>Position ↔</span><input type="range" id="ovX" min="5" max="95" value="${ov.x}"><output>${ov.x}</output></div>
  <div class="slider-row"><span>Position ↕</span><input type="range" id="ovY" min="5" max="95" value="${ov.y}"><output>${ov.y}</output></div>
+ <div class="slider-row"><span>Opacity</span><input type="range" id="ovOp" min="10" max="100" value="${Math.round((ov.op!=null?ov.op:1)*100)}"><output>${Math.round((ov.op!=null?ov.op:1)*100)}%</output></div>
  <div class="row"><div class="field"><label>Start (s)</label><input type="number" id="ovStart" step="0.1" min="0" value="${ov.start}"></div>
  <div class="field"><label>Duration (s)</label><input type="number" id="ovDur" step="0.1" min="0.3" value="${ov.dur}"></div></div>
  <button class="danger" id="ovDel" style="width:100%">🗑 Delete overlay</button>`;
  $("#ovScale").oninput=e=>{ov.scale=+e.target.value;e.target.nextElementSibling.textContent=ov.scale+"%";drawFrame()};
  $("#ovX").oninput=e=>{ov.x=+e.target.value;e.target.nextElementSibling.textContent=ov.x;drawFrame()};
  $("#ovY").oninput=e=>{ov.y=+e.target.value;e.target.nextElementSibling.textContent=ov.y;drawFrame()};
+ $("#ovOp").oninput=e=>{ov.op=+e.target.value/100;e.target.nextElementSibling.textContent=e.target.value+"%";drawFrame()};
+ $("#ovOp").onchange=()=>pushHistory();
  ["#ovScale","#ovX","#ovY"].forEach(id=>{$(id).onchange=()=>{renderOverlays();pushHistory()}});
  $("#ovStart").onchange=e=>{ov.start=Math.max(0,+e.target.value||0);renderOverlays();pushHistory()};
  $("#ovDur").onchange=e=>{ov.dur=Math.max(0.3,+e.target.value||1);renderOverlays();pushHistory()};
@@ -736,6 +759,9 @@ function renderOvPanel(){
 /* overlay video sync */
 setInterval(()=>{
  const pt=progTime();
+ // track 1: loop-wrap from the trim-in point
+ const m1id=$("#musicSel")?$("#musicSel").value:"";
+ if(m1id&&(playing||exporting)&&musEl.ended){ try{musEl.currentTime=musicIn; musEl.play().catch(()=>{})}catch(e){} }
  // second audio track: start-at-offset gating
  const m2id=$("#music2Sel")?$("#music2Sel").value:""; const off2=+($("#music2Off")&&$("#music2Off").value||0);
  if(m2id&&(playing||exporting)){
@@ -845,7 +871,7 @@ let hist=[], histIdx=-1, histLock=false;
 function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
  ratio:$("#ratioSel").value,fit:$("#fitSel").value,res:$("#resSel")?.value||"1",
  preset:curPreset,trans:curTransition,letterbox,music:$("#musicSel").value,
- int:filterIntensity,fi:musicFadeIn,fo:musicFadeOut,
+ int:filterIntensity,fi:musicFadeIn,fo:musicFadeOut,mi:musicIn,
  adj:[$("#adjB").value,$("#adjC").value,$("#adjS").value],
  pc:[pcCol.temp,pcCol.tint,pcCol.vib,pcCol.fade],
  m2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
@@ -868,6 +894,7 @@ function applySnapshot(s){
   if(o.int!=null){filterIntensity=o.int;const ir=$("#intRange");if(ir){ir.value=Math.round(o.int*100);$("#intRangeO").textContent=Math.round(o.int*100)+"%"}}
   musicFadeIn=o.fi||0; musicFadeOut=o.fo||0;
   const fiEl=$("#fadeInS"),foEl=$("#fadeOutS"); if(fiEl)fiEl.value=musicFadeIn; if(foEl)foEl.value=musicFadeOut;
+  musicIn=o.mi||0; const miEl=$("#musInS"); if(miEl)miEl.value=musicIn;
   if(o.adj){["#adjB","#adjC","#adjS"].forEach((id,i)=>{$(id).value=o.adj[i]});["#adjBO","#adjCO","#adjSO"].forEach((id,i)=>{$(id).textContent=o.adj[i]})}
   if(o.pc){pcCol={temp:o.pc[0],tint:o.pc[1],vib:o.pc[2],fade:o.pc[3]};["#pcTemp","#pcTint","#pcVib","#pcFade"].forEach((id,i)=>{$(id).value=o.pc[i];$(id+"O").textContent=o.pc[i]})}
   if(o.m2){$("#music2Sel").value=o.m2.sel||"";$("#music2Sel").dispatchEvent(new Event("change"));$("#music2Vol").value=o.m2.vol!=null?o.m2.vol:80;$("#music2VolO").textContent=$("#music2Vol").value;$("#music2Off").value=o.m2.off||0}
@@ -984,7 +1011,7 @@ document.addEventListener("click",async e=>{
   const url=URL.createObjectURL(blob), mb=(blob.size/1048576).toFixed(2);
   st.textContent="MP4 ready ✓ — "+mb+" MB";
   $("#mp4Done").innerHTML=`<video src="${url}" controls style="width:100%;border-radius:9px;background:#000;margin-top:8px"></video>
-   <a href="${url}" download="cutvault-export.mp4"><button class="gold" style="width:100%;margin-top:8px">⬇ Download MP4</button></a>`;
+   <a href="${url}" download="${expFileName()}.mp4"><button class="gold" style="width:100%;margin-top:8px">⬇ Download MP4</button></a>`;
  }catch(err){
   st.textContent="MP4 conversion failed ("+(err.message||"network")+") — the WebM above still works everywhere; check your connection and tap Convert again.";
  }
@@ -998,6 +1025,7 @@ $("#intRange").oninput=e=>{filterIntensity=+e.target.value/100;$("#intRangeO").t
 $("#intRange").onchange=()=>pushHistory();
 $("#fadeInS").onchange=e=>{musicFadeIn=Math.max(0,+e.target.value||0);pushHistory()};
 $("#fadeOutS").onchange=e=>{musicFadeOut=Math.max(0,+e.target.value||0);pushHistory()};
+$("#musInS").onchange=e=>{musicIn=Math.max(0,+e.target.value||0);pushHistory();markDirty()};
 async function ensureFF(statusEl){
  const say=t=>{if(statusEl)statusEl.textContent=t;else flashNow(t)};
  if(!window.FFmpegWASM){
@@ -1087,6 +1115,24 @@ function wireClipFx(s,p){
  const rs=$("#cfReset"); if(rs)rs.onclick=()=>{delete s.fx;renderSegPanel();drawFrame();pushHistory()};
 }
 function renderSegPanelSoft(){ /* keep panel state fresh without stealing scroll */ }
+function wireReplace(s,p){
+ if(!p)return; const cur=media.get(s.mediaId); if(!cur||cur.type==="audio")return;
+ const others=[...media.values()].filter(m=>m.id!==cur.id&&m.type===cur.type);
+ if(!others.length)return;
+ const box=document.createElement("div");
+ box.innerHTML=`<div class="sub" style="margin-top:14px">🔁 Replace clip media</div>
+ <div class="field"><label>Swap the footage, keep trims / speed / effects</label>
+ <select id="rpSel" style="width:100%"><option value="">Choose media…</option>${others.map(m=>`<option value="${m.id}">${m.name.replace(/</g,"&lt;")}</option>`).join("")}</select></div>`;
+ p.appendChild(box);
+ const sel=box.querySelector("#rpSel");
+ sel.onchange=()=>{ const nm=media.get(sel.value); if(!nm)return;
+  s.mediaId=nm.id; const nd=nm.duration||s.out;
+  if(s.out>nd)s.out=nd; if(s.in>s.out-0.2)s.in=Math.max(0,s.out-0.2);
+  if(curSeg===segments.indexOf(s))loadSegment(curSeg,playing);
+  renderTimeline(); renderSegPanel(); drawFrame(); pushHistory();
+  flashNow("Clip media replaced ✓ (trims kept)") };
+}
+function expFileName(){ const v=($("#expName")&&$("#expName").value||"").trim().replace(/[^\w\- ]+/g,"").replace(/\s+/g,"-"); return v||"cutvault-export" }
 function wireSmart(s,p){
  if(!p)return;
  const m=media.get(s.mediaId); if(!m||m.type==="audio")return;

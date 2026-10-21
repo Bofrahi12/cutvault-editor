@@ -194,6 +194,7 @@ a{color:var(--gold2)}
   <div class="row">
     <div class="field"><label>Fade in (seconds)</label><input type="number" id="fadeInS" min="0" max="10" step="0.5" value="0" style="width:100%"></div>
     <div class="field"><label>Fade out (seconds)</label><input type="number" id="fadeOutS" min="0" max="10" step="0.5" value="0" style="width:100%"></div>
+    <div class="field"><label>Music starts at (s)</label><input type="number" id="musInS" min="0" max="120" step="0.5" value="0" style="width:100%"></div>
   </div>
   <p class="hint">Tip: each clip also has its own volume — select a clip in Edit.</p>
   <div class="sub">Second audio track</div>
@@ -220,6 +221,9 @@ a{color:var(--gold2)}
     <button>🎵</button><button>🎧</button><button>🎤</button><button>⚽</button><button>🏀</button><button>🎮</button><button>🚗</button><button>✈️</button>
     <button>🏝</button><button>🍕</button><button>🍔</button><button>☕</button><button>💡</button><button>📌</button><button>❌</button><button>⏰</button>
     <button>📣</button><button>🧲</button><button>🛡</button><button>🎁</button><button>🏅</button><button>🥇</button><button>🔝</button><button>💪</button>
+    <button>🎉</button><button>🥳</button><button>🎂</button><button>💍</button><button>🎓</button><button>🌙</button><button>🕌</button><button>🏖</button>
+    <button>🎄</button><button>🎃</button><button>💘</button><button>👶</button><button>🐶</button><button>🐱</button><button>🌹</button><button>💎</button>
+    <button>🏠</button><button>🔑</button><button>🛍</button><button>💸</button><button>📈</button><button>🏋️</button><button>🍰</button><button>📚</button>
     <button>🫶</button><button>👍</button><button>🤝</button><button>🙏</button><button>😂</button><button>🥹</button><button>😍</button><button>👏</button>
     <button>🙌</button><button>💸</button><button>📈</button><button>🌟</button>
   </div>
@@ -278,6 +282,8 @@ a{color:var(--gold2)}
     <option value="shake">Glitch shake</option>
     <option value="slideup">Slide up</option>
     <option value="zoomout">Zoom out settle</option>
+    <option value="flip">Flip in</option>
+    <option value="bounce">Bounce in</option>
   </select>
 </div>
 
@@ -303,6 +309,8 @@ a{color:var(--gold2)}
     <option value="2">QHD (1440-wide · much slower)</option>
     <option value="3">4K (2160-wide · desktop recommended)</option>
   </select></div>
+  <div class="field"><label>File name</label>
+  <input type="text" id="expName" placeholder="cutvault-export" style="width:100%"></div>
 </div>
 
 <div class="sheet" id="sheet-templates">
@@ -341,13 +349,29 @@ a{color:var(--gold2)}
     <button class="tplchip" data-tpl="recap">⏪ Recap</button>
     <button class="tplchip" data-tpl="teaser">👀 Teaser</button>
     <button class="tplchip" data-tpl="flashsale">⚡ Flash Sale</button>
+    <button class="tplchip" data-tpl="podcast">🎙 Podcast</button>
+    <button class="tplchip" data-tpl="lyrics">🎵 Lyrics</button>
+    <button class="tplchip" data-tpl="meme">😂 Meme</button>
+    <button class="tplchip" data-tpl="fitness">💪 Fitness</button>
+    <button class="tplchip" data-tpl="cooking">👨‍🍳 Cooking</button>
+    <button class="tplchip" data-tpl="study">📚 Study</button>
+    <button class="tplchip" data-tpl="birthday">🎂 Birthday</button>
+    <button class="tplchip" data-tpl="weddinginvite">💍 Wedding Invite</button>
+    <button class="tplchip" data-tpl="graduation">🎓 Graduation</button>
+    <button class="tplchip" data-tpl="ramadan">🌙 Ramadan</button>
+    <button class="tplchip" data-tpl="luxuryestate">🏛 Luxury Estate</button>
+    <button class="tplchip" data-tpl="sportnews">⚽ Sport News</button>
+    <button class="tplchip" data-tpl="unboxpro">📦 Unbox Pro</button>
+    <button class="tplchip" data-tpl="travelpro">✈️ Travel Pro</button>
+    <button class="tplchip" data-tpl="newyear">🎆 New Year</button>
+    <button class="tplchip" data-tpl="petfun">🐶 Pet Fun</button>
     <button class="tplchip" data-tpl="none">✖ Clear template</button>
   </div>
   <div class="sub">Start instantly</div>
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v10 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v11 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
