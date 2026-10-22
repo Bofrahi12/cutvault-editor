@@ -173,6 +173,24 @@ a{color:var(--gold2)}
     <button data-stock="stock-luxcar.jpg" style="flex:1 1 30%">🏎 Lux Car</button>
   </div>
   <p class="hint">Original CineVault stock images — tap to add one to your timeline. Plus the demo clip &amp; music bed above.</p>
+  <div class="sub">🎬 Auto Video Maker</div>
+  <input type="text" id="avTitle" placeholder="Your video title…" style="width:100%">
+  <div class="row" style="margin-top:7px">
+    <div class="field"><label>Theme</label><select id="avTheme" style="width:100%">
+      <option value="cinematic">🎬 Cinematic</option>
+      <option value="neon">🌃 Neon</option>
+      <option value="sale">🏷 Sale Promo</option>
+      <option value="travel">✈️ Travel</option>
+      <option value="vlog">📱 Vlog</option>
+    </select></div>
+    <button class="gold" id="avGo" style="flex:1">🎬 Build my video</button>
+  </div>
+  <p class="hint">Builds a complete 9:16 video automatically — scenes, animated zoom, your title, music. Replaces the current timeline (you can undo).</p>
+  <div class="sub">🤖 AI Video from text (cloud · beta)</div>
+  <input type="password" id="aiTok" placeholder="Your free HuggingFace token (hf_…)" style="width:100%">
+  <input type="text" id="aiPrompt" placeholder="Describe the clip: waves crashing on a beach at sunset…" style="width:100%;margin-top:7px">
+  <button class="bigbtn" id="aiGen" style="width:100%;margin-top:7px">🤖 Generate clip</button>
+  <p class="hint" id="aiState">True text-to-video needs cloud GPUs, so this uses YOUR OWN free token from huggingface.co (Settings → Access Tokens → Read). The clip is generated there and added to your timeline. Your token never leaves this browser except to HuggingFace.</p>
   <div class="sub">💾 Projects on this device</div>
   <div class="row"><span id="slotLbl1" style="flex:1;font-size:13px;color:var(--mut)">Slot 1 — empty</span><button data-slot-save="1">Save</button><button data-slot-load="1">Load</button></div>
   <div class="row" style="margin-top:7px"><span id="slotLbl2" style="flex:1;font-size:13px;color:var(--mut)">Slot 2 — empty</span><button data-slot-save="2">Save</button><button data-slot-load="2">Load</button></div>
@@ -221,6 +239,22 @@ a{color:var(--gold2)}
   <div class="field"><label>Track 2 starts at (seconds into the video)</label><input type="number" id="music2Off" min="0" max="600" step="0.5" value="0" style="width:100%"></div>
   <div class="row"><button id="duckBtn" style="width:100%">🦆 Auto-duck music under speech: OFF</button></div>
   <p class="hint">When ON, the music dips automatically whenever the clip's own audio (voice) is loud, and comes back in the pauses.</p>
+  <div class="sub">🎵 AI Music Maker — composes original music on your device</div>
+  <div class="row">
+    <div class="field"><label>Style</label><select id="mmStyle" style="width:100%">
+      <option value="lofi">🎧 Lo-Fi Chill</option>
+      <option value="phonk">💀 Phonk Drift</option>
+      <option value="epic">🎬 Epic Cinematic</option>
+      <option value="house">🎉 Upbeat House</option>
+      <option value="arab">🪘 Arabic Groove</option>
+    </select></div>
+    <div class="field"><label>Length</label><select id="mmBars" style="width:100%">
+      <option value="8">Short (~15–25s)</option>
+      <option value="16" selected>Full (~30–50s)</option>
+    </select></div>
+  </div>
+  <button class="bigbtn gold" id="mmGen" style="width:100%">🎵 Generate my song</button>
+  <p class="hint" id="mmState">100% original, composed in your browser — yours to use anywhere, no royalties.</p>
   <div class="sub">🥁 Beat sync</div>
   <button class="bigbtn" id="beatBtn" style="width:100%">🥁 Detect beats in Track 1 music</button>
   <p class="hint" id="beatState">Beats appear as ticks under the timeline.</p>
@@ -346,7 +380,7 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v13 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v14 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

@@ -891,6 +891,148 @@ document.addEventListener("keydown",e=>{
  else if(e.code==="KeyS"){const b=$("#splitBtn"); if(b)b.click()}
  else if(e.code==="Delete"||e.code==="Backspace"){const b=$("#spDel"); if(b&&selSeg){e.preventDefault();b.click()}}
 });
+/* ----- Auto Video Maker + AI text-to-video (BYOK cloud) ----- */
+const AV_THEMES={
+ cinematic:{preset:"Cinematic",trans:"cross",style:"thin",letter:true,sub:"A CutVault film"},
+ neon:{preset:"Neon Night",trans:"flash",style:"neon",letter:false,sub:"Night vibes"},
+ sale:{preset:"Sharp Pop",trans:"flash",style:"pop",letter:false,sub:"Limited time — link in bio"},
+ travel:{preset:"Teal & Orange",trans:"cross",style:"gold",letter:false,sub:"Travel diary"},
+ vlog:{preset:"Warm",trans:"slideup",style:"marker",letter:false,sub:"Daily vlog"}};
+$("#avGo").onclick=async()=>{ const btn=$("#avGo"); btn.disabled=true; btn.textContent="Building…";
+ try{
+  const title=($("#avTitle").value||"").trim()||"MY VIDEO";
+  const TH=AV_THEMES[$("#avTheme").value]||AV_THEMES.cinematic;
+  // scenes: user's own images first, else the built-in stock pack
+  let imgs=[...media.values()].filter(m=>m.type==="image").slice(0,3);
+  if(imgs.length<3){
+   for(const nm of ["stock-neon.jpg","stock-ocean.jpg","stock-luxcar.jpg"]){
+    if(imgs.length>=3)break;
+    if([...media.values()].some(m=>m.name===nm))continue;
+    const r=await fetch("assets/stock/"+nm); const blob=await r.blob();
+    addFiles([new File([blob],nm,{type:"image/jpeg"})]);
+   }
+   imgs=[...media.values()].filter(m=>m.type==="image").slice(0,3);
+  }
+  if(!imgs.length)throw new Error("no scenes");
+  stopPlayback();
+  segments=imgs.map(m=>({id:"s"+(++segSeq),mediaId:m.id,in:0,out:3,dur:3,speed:1,
+   kf:{on:true,ease:"smooth",from:{z:1.02,x:0,y:0,op:1,rot:0},to:{z:1.24,x:0,y:0,op:1,rot:0}}}));
+  const total=segments.length*3;
+  texts=[{id:"t"+(++txtSeq),content:title.toUpperCase(),start:0.3,end:total,size:84,color:"#ffffff",stroke:true,x:50,y:44,style:TH.style,anim:"pop"},
+         {id:"t"+(++txtSeq),content:TH.sub,start:0.8,end:total,size:48,color:"#ffffff",stroke:false,x:50,y:86,style:"box",anim:"fade"}];
+  setSelect("#ratioSel","9:16"); setSelect("#fitSel","fill"); setPreset(TH.preset);
+  curTransition=TH.trans; $("#transSel").value=TH.trans; letterbox=!!TH.letter;
+  // music: newest audio in library, else the demo bed
+  let aud=[...media.values()].filter(m=>m.type==="audio").pop();
+  if(!aud){ const r=await fetch("assets/demo-music.mp3"); const blob=await r.blob();
+   addFiles([new File([blob],"demo-music.mp3",{type:"audio/mpeg"})]);
+   aud=[...media.values()].filter(m=>m.type==="audio").pop() }
+  if(aud)$("#musicSel").value=aud.id;
+  curSeg=0; selSeg=segments[0].id; selText=null;
+  loadSegment(0,false); renderTimeline(); renderTextList(); drawFrame(); pushHistory(); markDirty();
+  flashNow("Auto video built ✓ — press play, then Export");
+ }catch(e){ flashNow("Auto build failed — add an image first, then retry") }
+ btn.disabled=false; btn.textContent="🎬 Build my video" };
+(()=>{ const tok=$("#aiTok"); if(!tok)return;
+ tok.value=localStorage.getItem("cv_hf_token")||"";
+ tok.onchange=()=>localStorage.setItem("cv_hf_token",tok.value.trim());
+ $("#aiGen").onclick=async()=>{ const st=$("#aiState"), btn=$("#aiGen");
+  const token=tok.value.trim(), prompt=$("#aiPrompt").value.trim();
+  if(!token){st.textContent="Paste your free HuggingFace token first (huggingface.co → Settings → Access Tokens).";return}
+  if(!prompt){st.textContent="Describe the clip you want first.";return}
+  btn.disabled=true; st.textContent="Generating on HuggingFace cloud… this can take a minute or two.";
+  try{ const r=await fetch("https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",{
+     method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+     body:JSON.stringify({inputs:prompt})});
+   const ct=r.headers.get("content-type")||"";
+   if(r.ok&&ct.includes("video")){ const blob=await r.blob();
+    addFiles([new File([blob],"ai-clip.mp4",{type:"video/mp4"})]);
+    st.textContent="✓ Your AI clip was added to the timeline.";
+    flashNow("AI clip added ✓");
+   } else { const j=await r.json().catch(()=>null);
+    st.textContent="HuggingFace said: "+((j&&j.error)||("HTTP "+r.status))+" — free models often need a warm-up retry." }
+  }catch(e){ st.textContent="Could not reach HuggingFace from this browser — check your connection and retry." }
+  btn.disabled=false };
+})();
+/* ----- AI Music Maker: generative composition, rendered on-device ----- */
+const MM_STYLES={
+ lofi:{bpm:78,root:45,mode:[0,3,5,7,10],prog:[[0,3,7,10],[8,0,3,7],[3,7,10,2],[10,2,5,8]],wave:"triangle",bassWave:"sine",drums:"lofi",melGain:.20},
+ phonk:{bpm:140,root:41,mode:[0,3,5,6,7,10],prog:[[0,3,7],[0,3,7],[8,0,3],[6,3,0]],wave:"square",bassWave:"sawtooth",drums:"phonk",melGain:.13},
+ epic:{bpm:100,root:43,mode:[0,2,3,5,7,8,10],prog:[[0,3,7,10],[8,3,7,10],[3,7,10,2],[10,3,7,10]],wave:"sawtooth",bassWave:"sawtooth",drums:"epic",melGain:.10},
+ house:{bpm:124,root:48,mode:[0,2,4,5,7,9,11],prog:[[0,4,7,11],[5,9,0,4],[9,0,4,7],[7,11,2,5]],wave:"square",bassWave:"triangle",drums:"house",melGain:.12},
+ arab:{bpm:104,root:50,mode:[0,1,4,5,7,8,11],prog:[[0,4,7,11],[5,8,11,2],[4,7,11,1],[7,11,2,5]],wave:"triangle",bassWave:"sine",drums:"arab",melGain:.18}};
+function mmNoteFreq(rootMidi,deg){ return 440*Math.pow(2,(rootMidi+deg-69)/12) }
+function bufferToWav(buf){
+ const nCh=2, sr=buf.sampleRate, len=buf.length*nCh*2+44, ab=new ArrayBuffer(len), v=new DataView(ab);
+ const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+ ws(0,"RIFF"); v.setUint32(4,len-8,true); ws(8,"WAVEfmt "); v.setUint32(16,16,true); v.setUint16(20,1,true);
+ v.setUint16(22,nCh,true); v.setUint32(24,sr,true); v.setUint32(28,sr*nCh*2,true); v.setUint16(32,nCh*2,true);
+ v.setUint16(34,16,true); ws(36,"data"); v.setUint32(40,len-44,true);
+ const L=buf.getChannelData(0), R=buf.numberOfChannels>1?buf.getChannelData(1):L; let o=44;
+ for(let i=0;i<buf.length;i++){ for(const ch of [L,R]){ const s=Math.max(-1,Math.min(1,ch[i])); v.setInt16(o,s*32767,true); o+=2 } }
+ return new Blob([ab],{type:"audio/wav"});
+}
+async function generateSong(styleKey,bars){
+ const ST=MM_STYLES[styleKey]||MM_STYLES.lofi;
+ const spb=60/ST.bpm, barDur=spb*4, total=bars*barDur;
+ const oc=new OfflineAudioContext(2,Math.ceil(total*44100)+4410,44100);
+ const master=oc.createGain(); master.gain.value=.9;
+ const comp=oc.createDynamicsCompressor(); master.connect(comp); comp.connect(oc.destination);
+ const noiseBuf=oc.createBuffer(1,44100,44100); const nd=noiseBuf.getChannelData(0);
+ for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+ let seed=styleKey.length*77+bars*13+7; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+ const tone=(freq,t,dur,type,g,slideTo)=>{ const o=oc.createOscillator(), gn=oc.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+  gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(g,t+0.02);
+  gn.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(gn); gn.connect(master); o.start(t); o.stop(t+dur+0.05) };
+ const noise=(t,dur,g,hp)=>{ const src=oc.createBufferSource(); src.buffer=noiseBuf;
+  const f=oc.createBiquadFilter(); f.type=hp?"highpass":"lowpass"; f.frequency.value=hp?6000:900;
+  const gn=oc.createGain(); gn.gain.setValueAtTime(g,t); gn.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.connect(f); f.connect(gn); gn.connect(master); src.start(t); src.stop(t+dur+0.02) };
+ const kick=(t,g)=>{ const o=oc.createOscillator(), gn=oc.createGain(); o.type="sine";
+  o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+0.12);
+  gn.gain.setValueAtTime(g,t); gn.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+  o.connect(gn); gn.connect(master); o.start(t); o.stop(t+0.3) };
+ for(let bar=0;bar<bars;bar++){
+  const t0=bar*barDur, chord=ST.prog[bar%ST.prog.length], rootDeg=chord[0];
+  // pad: whole-bar chord
+  chord.forEach(dg=>tone(mmNoteFreq(ST.root+12,dg),t0,barDur,ST.wave,.045));
+  // bass: driving eighths on the root
+  const bassPat=ST.drums==="house"?[0,2]:[0,1,2,3,4,5,6,7];
+  for(let e=0;e<8;e++){ if(bassPat.includes(e))tone(mmNoteFreq(ST.root-12,rootDeg),t0+e*spb/2,spb*0.45,ST.bassWave,.16) }
+  // melody: seeded random walk over the mode, 8th notes with rests
+  let mi=Math.floor(rnd()*ST.mode.length);
+  for(let e=0;e<8;e++){ if(rnd()<0.28)continue;
+   mi=Math.max(0,Math.min(ST.mode.length-1,mi+Math.floor(rnd()*5)-2));
+   const dg=ST.mode[mi]+(rnd()<0.2?12:0);
+   tone(mmNoteFreq(ST.root+24,dg),t0+e*spb/2,spb*(rnd()<0.3?0.9:0.45),ST.wave,ST.melGain) }
+  // drums per style
+  for(let b4=0;b4<4;b4++){ const bt=t0+b4*spb;
+   if(ST.drums==="house"||ST.drums==="phonk"||ST.drums==="epic")kick(bt,.5);
+   if(ST.drums==="lofi"&&b4%2===0)kick(bt,.32);
+   if(ST.drums==="arab"&&(b4===0||b4===3))kick(bt,.4);
+   if(b4%2===1)noise(bt,0.09,.10,false); // snare-ish
+   for(let h=0;h<4;h++){ const ht=bt+h*spb/4;
+    if(ST.drums==="house"&&h===2)noise(ht,0.05,.12,true);
+    else if(ST.drums!=="house")noise(ht,0.03,ST.drums==="lofi"?.045:.07,true) }
+   if(ST.drums==="arab"&&b4===2)noise(bt+spb/2,0.06,.09,true);
+  }
+ }
+ const buf=await oc.startRendering();
+ return bufferToWav(buf);
+}
+$("#mmGen").onclick=async()=>{ const st=$("#mmState"), btn=$("#mmGen");
+ const style=$("#mmStyle").value, bars=+$("#mmBars").value;
+ btn.disabled=true; st.textContent="Composing your song… (a few seconds)";
+ try{ const blob=await generateSong(style,bars);
+  const name="ai-song-"+style+".wav";
+  addFiles([new File([blob],name,{type:"audio/wav"})]);
+  st.textContent="✓ “"+name+"” is in your library — pick it as Track 1 above and press play.";
+  flashNow("AI song generated ✓ — it's in your music library");
+ }catch(e){ st.textContent="Generation failed — try again." }
+ btn.disabled=false };
 /* ----- beats: detection, ticks, beat-split ----- */
 async function mediaBuffer(m){
  const ab=m.file?await m.file.arrayBuffer():await (await fetch(m.url)).arrayBuffer();
