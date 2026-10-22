@@ -55,6 +55,7 @@ function addFiles(files){
   else{refreshMusicSel()}
  }
  renderMedia(); renderTimeline();
+ if(pendingRelink)setTimeout(tryRelink,60);
 }
 function probeVideo(item,seg){
  const v=document.createElement("video");v.muted=true;v.src=item.url;v.preload="metadata";
@@ -156,7 +157,7 @@ function renderSegPanel(){
  const L=$("#spLeft"),R=$("#spRight"),i=segments.indexOf(s);
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
- wireTF(s); wireSmart(s,p); wireClipFx(s,p); wireReplace(s,p);
+ wireTF(s); wireSmart(s,p); wireClipFx(s,p); wireReplace(s,p); wireExtract(s,p);
 }
 let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeout(renderTimeline,350)}
 $("#splitBtn").onclick=()=>{
@@ -228,10 +229,14 @@ function renderTextList(){
   <div class="field"><label>↕ Position %</label><input type="number" min="0" max="100" value="${t.y}" data-k="y"></div></div>
   <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","marker","outline","retro","block","cursive","type","grad","pop","thin","sticker","wide","double"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
   <div class="field"><label>Animation</label><select data-k="anim" style="width:100%">${["none","fade","pop","slide","drop"].map(v=>`<option value="${v}" ${(t.anim||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div></div>
-  <button class="danger" style="width:100%">Delete text</button>`;
+  <button class="danger" style="width:100%">Delete text</button>
+  <div class="row" style="margin-top:7px"><button class="tbDup" style="flex:1">⎘ Duplicate</button><button class="tbUp" style="flex:1">↑ Bring front</button><button class="tbDn" style="flex:1">↓ Send back</button></div>`;
   d.onclick=()=>{selText=t.id;renderTextList();renderTextTrack()};
   d.querySelectorAll("input,select").forEach(inp=>{const upd=()=>{const k=inp.dataset.k;t[k]=["content","color","style","anim"].includes(k)?inp.value:+inp.value;renderTextTrack();drawFrame()};inp.oninput=upd;inp.onchange=()=>{upd();pushHistory()}});
-  d.querySelector("button").onclick=e=>{e.stopPropagation();texts=texts.filter(x=>x.id!==t.id);renderTextList();renderTextTrack();drawFrame();pushHistory()};
+  d.querySelector("button.danger").onclick=e=>{e.stopPropagation();texts=texts.filter(x=>x.id!==t.id);renderTextList();renderTextTrack();drawFrame();pushHistory()};
+  const tbd=d.querySelector(".tbDup"); if(tbd)tbd.onclick=e=>{e.stopPropagation();const c={...t,id:"t"+(++txtSeq)};texts.push(c);selText=c.id;renderTextList();renderTextTrack();drawFrame();pushHistory()};
+  const tbu=d.querySelector(".tbUp"); if(tbu)tbu.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>=0&&i<texts.length-1){texts.splice(i,1);texts.splice(i+1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
+  const tbn=d.querySelector(".tbDn"); if(tbn)tbn.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>0){texts.splice(i,1);texts.splice(i-1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
   box.appendChild(d)});
 }
 
@@ -473,7 +478,7 @@ $("#exportBtn").onclick=()=>{
  ensureAudio();
  exporting=true; chunks=[]; $("#expDone").innerHTML=""; $("#expProg").style.display="block"; $("#exportBtn").disabled=true;
  stopPlayback(); playing=true; $("#playBtn").textContent="⏸";
- const canvasStream=cv.captureStream(30);
+ const canvasStream=cv.captureStream(+($("#fpsSel")?$("#fpsSel").value:30));
  const tracks=[...canvasStream.getVideoTracks()];
  if(streamDest)tracks.push(...streamDest.stream.getAudioTracks());
  const mixed=new MediaStream(tracks);
@@ -866,6 +871,55 @@ function waveCanvas(peaks,w,h,color){
  peaks.forEach((v,i)=>{ const bh=Math.max(1,v*h); g.fillStyle=color; g.fillRect(i*bw+0.5,(h-bh)/2,Math.max(1,bw-1.5),bh) });
  return c;
 }
+/* ----- project file export / import (media relinked by name) ----- */
+let pendingRelink=null;
+function buildProjectMeta(){
+ const meta={segments,texts,overlays,midSeq,segSeq,txtSeq,ovSeq,music:$("#musicSel").value,
+  music2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
+  mediaMeta:[...media.values()].map(m=>({id:m.id,name:m.name,type:m.type,duration:m.duration}))};
+ try{const st=JSON.parse(snapshotState()); delete st.segments; delete st.texts; delete st.overlays; meta.settings=st}catch(e){}
+ return meta;
+}
+$("#projExport").onclick=()=>{
+ if(!segments.length&&!texts.length){flashNow("Nothing to export yet");return}
+ const meta=buildProjectMeta();
+ const nameOf=id=>{const mm=meta.mediaMeta.find(x=>x.id===id);return mm?mm.name:""};
+ const data={app:"cutvault-project",v:1,exportedAt:Date.now(),meta,
+  musicName:nameOf(meta.music),music2Name:nameOf(meta.music2.sel)};
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
+ a.download=expFileName()+".cutvault.json"; a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+ flashNow("Project file exported ✓ — media is re-linked by name on import");
+};
+$("#frameBtn").onclick=()=>{ drawFrame();
+ cv.toBlob(b=>{ if(!b)return; const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download=expFileName()+"-frame.png"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000); flashNow("Frame saved as PNG 📸") },"image/png") };
+$("#projImport").onclick=()=>$("#projIn").click();
+$("#projIn").onchange=async e=>{
+ const f=e.target.files[0]; e.target.value=""; if(!f)return;
+ try{ const data=JSON.parse(await f.text());
+  if(data.app!=="cutvault-project"||!data.meta)throw new Error("bad file");
+  pendingRelink=data; tryRelink();
+ }catch(err){ flashNow("That file is not a CutVault project") }
+};
+function tryRelink(){
+ if(!pendingRelink)return;
+ const data=pendingRelink, meta=data.meta;
+ const byName={}; for(const m of media.values())byName[m.name]=m.id;
+ const missing=meta.mediaMeta.filter(mm=>!byName[mm.name]);
+ if(missing.length){ flashNow("Import: now add these media files — "+missing.map(x=>x.name).join(", ")); return }
+ const remap={}; for(const mm of meta.mediaMeta)remap[mm.id]=byName[mm.name];
+ const nm=JSON.parse(JSON.stringify(meta));
+ nm.segments.forEach(s=>{if(remap[s.mediaId])s.mediaId=remap[s.mediaId]});
+ nm.overlays.forEach(o=>{if(remap[o.mediaId])o.mediaId=remap[o.mediaId]});
+ nm.music=data.musicName?byName[data.musicName]||"":"";
+ if(nm.music2)nm.music2.sel=data.music2Name?byName[data.music2Name]||"":"";
+ pendingRelink=null;
+ loadProjectMeta(nm);
+ flashNow("Project imported ✓ — media re-linked by name");
+}
 /* ----- undo / redo ----- */
 let hist=[], histIdx=-1, histLock=false;
 function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
@@ -1133,6 +1187,26 @@ function wireReplace(s,p){
   flashNow("Clip media replaced ✓ (trims kept)") };
 }
 function expFileName(){ const v=($("#expName")&&$("#expName").value||"").trim().replace(/[^\w\- ]+/g,"").replace(/\s+/g,"-"); return v||"cutvault-export" }
+function wireExtract(s,p){
+ if(!p)return; const m=media.get(s.mediaId); if(!m||m.type!=="video")return;
+ const box=document.createElement("div");
+ box.innerHTML=`<div class="sub" style="margin-top:14px">🎵 Extract audio</div>
+ <button id="exAudio" style="width:100%">🎵 Extract this clip's audio as a music file</button>
+ <p class="hint">Creates a separate audio file in your library (for Track 1 / Track 2) — handy for voice-overs and sound design.</p>`;
+ p.appendChild(box);
+ const btn=box.querySelector("#exAudio");
+ btn.onclick=async()=>{ if(!m.file){flashNow("Extract works on files you added (not the hosted demo)");return}
+  btn.disabled=true; btn.textContent="Extracting… (first time loads the engine)";
+  try{ const ff=await ensureFF();
+   await ff.writeFile("exin.mp4", await FFmpegUtil.fetchFile(m.file));
+   await ff.exec(["-i","exin.mp4","-vn","-c:a","pcm_s16le","exout.wav"]);
+   const data=await ff.readFile("exout.wav");
+   const file=new File([new Blob([data.buffer],{type:"audio/wav"})], m.name.replace(/\.[^.]+$/,"")+"-audio.wav",{type:"audio/wav"});
+   addFiles([file]); btn.textContent="✓ Audio added to your library";
+   flashNow("Audio extracted ✓ — find it in the Audio tracks");
+  }catch(e){ btn.disabled=false; btn.textContent="🎵 Extract this clip's audio as a music file"; flashNow("Extract failed on this file") }
+ };
+}
 function wireSmart(s,p){
  if(!p)return;
  const m=media.get(s.mediaId); if(!m||m.type==="audio")return;

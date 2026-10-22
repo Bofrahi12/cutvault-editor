@@ -123,6 +123,7 @@ a{color:var(--gold2)}
   <div class="transport">
     <button class="playbtn" id="playBtn">▶</button>
     <button id="restartBtn" title="Back to start" style="min-height:44px">⏮</button>
+    <button id="frameBtn" title="Save current frame as a PNG image" style="min-height:44px">📸</button>
     <div class="time"><b id="tCur">0:00.0</b> / <span id="tDur">0:00.0</span></div>
     <span id="nowPlaying">Tap “Media +” below, or open Templates → Demo</span>
   </div>
@@ -164,6 +165,10 @@ a{color:var(--gold2)}
   <div class="row" style="margin-top:7px"><span id="slotLbl2" style="flex:1;font-size:13px;color:var(--mut)">Slot 2 — empty</span><button data-slot-save="2">Save</button><button data-slot-load="2">Load</button></div>
   <div class="row" style="margin-top:7px"><span id="slotLbl3" style="flex:1;font-size:13px;color:var(--mut)">Slot 3 — empty</span><button data-slot-save="3">Save</button><button data-slot-load="3">Load</button></div>
   <p class="hint">The current project also auto-saves as you edit. Loading a slot replaces the editor — save your current work first if it matters.</p>
+  <div class="sub">Project file (move to another device)</div>
+  <div class="row"><button id="projExport" style="flex:1">⬇ Export project file</button><button id="projImport" style="flex:1">⬆ Import project file</button></div>
+  <input type="file" id="projIn" accept=".json,application/json" hidden>
+  <p class="hint">The file carries the edit (clips, texts, effects) — not the media itself. On the other device, import the file, then add the same media files when asked; CutVault re-links them by name.</p>
   <p class="hint" style="margin-top:9px">Everything stays on your device — nothing is uploaded.</p>
 </div>
 
@@ -311,6 +316,11 @@ a{color:var(--gold2)}
   </select></div>
   <div class="field"><label>File name</label>
   <input type="text" id="expName" placeholder="cutvault-export" style="width:100%"></div>
+  <div class="field"><label>Frame rate</label>
+  <select id="fpsSel" style="width:100%">
+    <option value="30" selected>30 fps (standard)</option>
+    <option value="60">60 fps (smoother motion)</option>
+  </select></div>
 </div>
 
 <div class="sheet" id="sheet-templates">
@@ -371,7 +381,7 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v11 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v12 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

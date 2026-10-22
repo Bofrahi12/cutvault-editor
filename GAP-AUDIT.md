@@ -166,3 +166,8 @@ Per-clip color (own preset + B/C/S + intensity per segment, overriding global) �
 ## Progress — Phase H (v11, 2026-10-22)
 Libraries deepened: templates 32 → **48** (podcast, lyrics, meme, fitness, cooking, study, birthday, wedding invite, graduation, Ramadan, luxury estate, sport news, unbox pro, travel pro, new year, pets), text styles → **17** (+marker highlight, wide letter-spacing, double outline — pixel-verified), stickers → **84**, transitions → **16** (+flip-in verified squeezed to a sliver at t=0, +bounce). PiP overlays gained opacity. Track-1 music gained a trim-in point ("Music starts at") with loop-wrap. New workflow tools: **Replace clip media** (swap footage, keep trims/speed/effects — verified m1→m2) and a custom export file name.
 **Re-scored total: ≈ 71/100** (was 68).
+
+## Progress — Phase I (v12, 2026-10-22)
+Project files: export/import a portable .cutvault.json — the edit travels, media re-links BY NAME on the other device (verified full round-trip in a fresh browser profile: segments, texts and per-clip fx restored exactly). Extract-audio: any video clip's sound becomes a standalone WAV in the library via ffmpeg.wasm (verified 1.94 MB real WAV from the test clip). Export gained a 60 fps option; a 📸 button saves the current frame as PNG. Text layers gained duplicate + bring-front/send-back ordering.
+**Re-scored total: ≈ 74/100** (was 71).
+Remaining gap is concentrated in CapCut's company infrastructure: licensed stock library (media 1/10 — one category ≈ 9 of the missing points), cloud AI/render farms, team collaboration, and native-engine color/stabilization science. Within an on-device web app, v12 is close to the practical ceiling; further phases would add ~1 point each.
