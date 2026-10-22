@@ -101,6 +101,22 @@ a{color:var(--gold2)}
 .tplcard .tc-em{font-size:30px;line-height:1;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
 .tplcard .tc-lb{font-size:11.5px;font-weight:700;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,.6);line-height:1.15}
 .tplcard.sel{border-color:#fff;box-shadow:0 0 0 2px var(--gold)}
+/* Phase L — order & ease */
+.canvas-wrap{position:relative}
+#homeCard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;padding:22px;background:rgba(7,8,12,.45);z-index:5}
+#homeCard button{width:min(300px,86%);min-height:52px;font-size:16px;font-weight:700;border-radius:14px}
+#homeCard .hc-title{font-size:19px;font-weight:800;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+#homeCard .hc-note{font-size:12px;color:#cfd4de;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+#quickBar{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+#quickBar button{flex:1 1 18%;min-height:46px;font-size:14px;font-weight:700;border-radius:12px;white-space:nowrap}
+.sub{border-left:3px solid var(--gold);padding-left:9px;margin-top:20px;font-size:14.5px}
+.acc-head{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+.acc-head::after{content:"▸";margin-left:auto;color:var(--gold);font-size:15px}
+.acc-head.open::after{content:"▾"}
+.acc-body{padding-top:2px}
+.sheet{padding-bottom:30px}
+.slider-row{padding:5px 0}
+button{min-height:42px}
 </style>
 </head>
 <body>
@@ -125,7 +141,15 @@ a{color:var(--gold2)}
       <button id="discardBtn" style="min-height:38px">Discard</button>
     </div>
   </div>
-  <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas></div>
+  <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas>
+    <div id="homeCard">
+      <div class="hc-title">🎬 What do you want to make?</div>
+      <button class="gold" id="hcAdd">➕ Add my video or photo</button>
+      <button id="hcAuto">🤖 Auto-make a video for me</button>
+      <button id="hcDemo">▶ Try the demo project</button>
+      <div class="hc-note">No sign-up · your files never leave this device</div>
+    </div>
+  </div>
   <div class="transport">
     <button class="playbtn" id="playBtn">▶</button>
     <button id="restartBtn" title="Back to start" style="min-height:44px">⏮</button>
@@ -143,6 +167,13 @@ a{color:var(--gold2)}
     <div class="timeline"><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
     <div id="tlBeats" style="position:relative;height:10px;margin-top:2px;display:none"></div>
     <div class="timeline" id="ovTrackWrap" style="margin-top:7px;display:none"><div style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em;margin-bottom:5px">OVERLAY · PICTURE-IN-PICTURE</div><div class="tl-track" id="tlOverlay" style="min-height:44px"></div></div>
+    <div id="quickBar" style="display:none">
+      <button id="qbSplit">✂ Split</button>
+      <button id="qbDup">⧉ Duplicate</button>
+      <button id="qbSpeed">🐢 Speed</button>
+      <button id="qbColor">🎨 Color</button>
+      <button id="qbDel" class="danger">🗑 Delete</button>
+    </div>
     <div class="tl-texts" id="tlTexts"></div>
     <div class="progress" id="expProg"><b id="expLabel">Rendering…</b><div class="bar"><i id="expBar"></i></div><p class="hint" style="margin-top:7px">Keep this tab open — export runs in real time.</p></div>
     <div id="expDone" style="margin-top:10px"></div>
@@ -380,7 +411,7 @@ a{color:var(--gold2)}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v14 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v15 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

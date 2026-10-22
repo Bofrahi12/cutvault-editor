@@ -121,7 +121,11 @@ function renderTimeline(){
   d.onclick=()=>{selSeg=s.id;renderTimeline();renderSegPanel();seekToSegment(i)};
   tr.appendChild(d)});
  $("#tDur").textContent=fmt(progDur());
- renderTextTrack(); renderSegPanel(); renderBeatTicks();
+ renderTextTrack(); renderSegPanel(); renderBeatTicks(); refreshChrome();
+}
+function refreshChrome(){
+ const qb=$("#quickBar"); if(qb)qb.style.display=(selSeg&&segments.length)?"flex":"none";
+ const hc=$("#homeCard"); if(hc)hc.style.display=segments.length?"none":"flex";
 }
 function renderTextTrack(){
  const el=$("#tlTexts");
@@ -133,11 +137,12 @@ function renderSegPanel(){
  if(!s){p.innerHTML='<p class="hint">Select a clip on the timeline to trim it.</p>';return}
  const m=media.get(s.mediaId);if(!m)return;
  if(m.type==="image"){
-  p.innerHTML=`<div class="field"><label>Photo duration (seconds)</label><input type="number" id="spDur" min="0.5" max="30" step="0.5" value="${s.dur}" style="width:100%"></div>
+  p.innerHTML=`<div class="sub" style="margin-top:0">✂ Cut & sound</div><div class="field"><label>Photo duration (seconds)</label><input type="number" id="spDur" min="0.5" max="30" step="0.5" value="${s.dur}" style="width:100%"></div>
   <div class="row"><button id="spLeft">← Move</button><button id="spRight">Move →</button></div>`+TF_HTML(s);
   $("#spDur").onchange=e=>{s.dur=Math.max(0.5,+e.target.value||3);renderTimeline();pushHistory()};
  }else{
   p.innerHTML=`
+  <div class="sub" style="margin-top:0">✂ Cut & sound</div>
   <div class="slider-row"><span>Trim start</span><input type="range" id="spIn" min="0" max="${m.duration}" step="0.05" value="${s.in}"><output>${fmt(s.in)}</output></div>
   <div class="slider-row"><span>Trim end</span><input type="range" id="spOut" min="0" max="${m.duration}" step="0.05" value="${s.out}"><output>${fmt(s.out)}</output></div>
   <div class="field"><label>Speed</label><select id="spSpeed" style="width:100%">${[0.5,0.75,1,1.25,1.5,2].map(v=>`<option value="${v}" ${s.speed===v?"selected":""}>${v}×</option>`).join("")}</select></div>
@@ -158,6 +163,37 @@ function renderSegPanel(){
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
  wireTF(s); wireSmart(s,p); wireClipFx(s,p); wireReplace(s,p); wireExtract(s,p);
+ organizePanel(p);
+}
+function makeCollapsible(box, open){
+ const head=box.querySelector(":scope > .sub"); if(!head||head.dataset.acc)return;
+ head.dataset.acc="1"; head.classList.add("acc-head");
+ const body=document.createElement("div"); body.className="acc-body";
+ [...box.childNodes].forEach(n=>{ if(n!==head)body.appendChild(n) });
+ box.appendChild(body);
+ if(!open)body.style.display="none"; else head.classList.add("open");
+ head.onclick=()=>{ const isOpen=body.style.display!=="none"; body.style.display=isOpen?"none":""; head.classList.toggle("open",!isOpen) };
+}
+function organizePanel(p){
+ // wrap loose runs that start with a .sub (basics, Transform) into groups
+ let kids=[...p.childNodes], i=0;
+ while(i<kids.length){
+  const n=kids[i];
+  if(n.nodeType===1&&n.classList&&n.classList.contains("sub")){
+   const wrap=document.createElement("div"); p.insertBefore(wrap,n);
+   const run=[]; let j=i;
+   while(j<kids.length){ const c=kids[j];
+    if(j>i&&c.nodeType===1&&(c.classList.contains("sub")||(c.tagName==="DIV"&&c.querySelector(":scope > .sub"))))break;
+    run.push(c); j++ }
+   run.forEach(c=>wrap.appendChild(c));
+   const title=(wrap.querySelector(".sub").textContent||"");
+   makeCollapsible(wrap, /Cut|Transform/.test(title));
+   kids=[...p.childNodes]; i=kids.indexOf(wrap)+1; continue;
+  }
+  i++;
+ }
+ // wire boxes start collapsed — only one tap away, never a wall of controls
+ [...p.children].forEach(c=>{ if(c.tagName==="DIV"&&c.querySelector(":scope > .sub")&&!c.querySelector(":scope > .acc-body")) makeCollapsible(c,false) });
 }
 let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeout(renderTimeline,350)}
 $("#splitBtn").onclick=()=>{
@@ -891,6 +927,28 @@ document.addEventListener("keydown",e=>{
  else if(e.code==="KeyS"){const b=$("#splitBtn"); if(b)b.click()}
  else if(e.code==="Delete"||e.code==="Backspace"){const b=$("#spDel"); if(b&&selSeg){e.preventDefault();b.click()}}
 });
+/* ----- Home card + quick actions (Phase L: ease first) ----- */
+function openSheetByName(name){
+ closeSheets();
+ const sh=$("#sheet-"+name); if(sh)sh.classList.add("open");
+ const t=document.querySelector('.tool[data-sheet="'+name+'"]'); if(t)t.classList.add("on");
+}
+(()=>{ const hc=$("#homeCard"); if(hc)refreshChrome();
+ const add=$("#hcAdd"); if(add)add.onclick=()=>$("#fileIn").click();
+ const auto=$("#hcAuto"); if(auto)auto.onclick=()=>{ openSheetByName("media");
+  setTimeout(()=>{ const el=$("#avTitle"); if(el){el.focus(); el.scrollIntoView({block:"center"})} },80) };
+ const demo=$("#hcDemo"); if(demo)demo.onclick=()=>{ const d=$("#demoBtn2"); if(d)d.click() };
+ const qs=(id,fn)=>{ const b=$(id); if(b)b.onclick=fn };
+ qs("#qbSplit",()=>$("#splitBtn").click());
+ qs("#qbDup",()=>$("#dupBtn").click());
+ qs("#qbDel",()=>$("#delSegBtn").click());
+ qs("#qbSpeed",()=>openSheetByName("edit"));
+ qs("#qbColor",()=>{ openSheetByName("edit");
+  setTimeout(()=>{ const heads=[...document.querySelectorAll("#segPanel .acc-head")];
+   const h=heads.find(x=>/Clip color/.test(x.textContent));
+   if(h){ if(h.nextElementSibling&&h.nextElementSibling.style.display==="none")h.click();
+    h.scrollIntoView({block:"center"}) } },80) });
+})();
 /* ----- Auto Video Maker + AI text-to-video (BYOK cloud) ----- */
 const AV_THEMES={
  cinematic:{preset:"Cinematic",trans:"cross",style:"thin",letter:true,sub:"A CutVault film"},
