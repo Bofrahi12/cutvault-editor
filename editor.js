@@ -18,7 +18,7 @@ const PRESETS={
  "Noir":"grayscale(1) contrast(1.35) brightness(0.92)",
  "Teal & Orange":"contrast(1.15) saturate(1.25) hue-rotate(-8deg)", "Golden Hour":"sepia(0.38) saturate(1.3) brightness(1.06) contrast(1.05)",
  "Pastel":"brightness(1.12) saturate(0.8) contrast(0.9)", "Dream":"brightness(1.08) saturate(1.1) contrast(0.92)",
- "Sharp Pop":"contrast(1.22) saturate(1.3)", "Moody":"brightness(0.9) contrast(1.2) saturate(0.8)",
+ "Sharp Pop":"contrast(1.22) saturate(1.3)","Neon Night":"saturate(1.7) contrast(1.15) hue-rotate(-8deg) brightness(1.05)","Clean Airy":"brightness(1.12) contrast(0.92) saturate(1.08)", "Moody":"brightness(0.9) contrast(1.2) saturate(0.8)",
  "Retro 70s":"sepia(0.55) saturate(1.2) hue-rotate(-8deg)", "Cross Process":"saturate(1.5) hue-rotate(14deg) contrast(1.1)",
  "Bleach":"saturate(0.55) contrast(1.2) brightness(1.06)", "Infrared":"hue-rotate(160deg) saturate(1.6)",
  "Duotone":"grayscale(0.7) sepia(0.4) hue-rotate(185deg) saturate(2.2)", "Sepia Tone":"sepia(0.8) contrast(1.02) brightness(1.02)"};
@@ -208,6 +208,22 @@ if(duckBtnEl)duckBtnEl.onclick=()=>{duckOn=!duckOn;duckBtnEl.textContent=duckOn?
 });
 const fxGl=$("#fxGlitch");
 if(fxGl)fxGl.onclick=()=>{postfx.glitch=!postfx.glitch;fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";drawFrame();pushHistory();markDirty()};
+const LOOKS={
+ "🎬 Cinematic Teal":{preset:"Teal & Orange",fx:{vig:45,grain:35,glow:0,leak:0,glitch:false}},
+ "📼 Vintage Film":{preset:"Vintage",fx:{vig:30,grain:65,glow:0,leak:40,glitch:false}},
+ "🌃 Neon Nights":{preset:"Neon Night",fx:{vig:35,grain:15,glow:60,leak:0,glitch:true}},
+ "✨ Clean Commercial":{preset:"Clean Airy",fx:{vig:0,grain:0,glow:15,leak:0,glitch:false}},
+ "🌅 Golden Glow":{preset:"Golden Hour",fx:{vig:25,grain:20,glow:45,leak:55,glitch:false}},
+ "🖤 Noir Drama":{preset:"Noir",fx:{vig:65,grain:30,glow:0,leak:0,glitch:false}}};
+function applyLook(name){ const L=LOOKS[name]; if(!L)return;
+ setPreset(L.preset);
+ [["fxVig","vig"],["fxGrain","grain"],["fxGlow","glow"],["fxLeak","leak"]].forEach(([id,k])=>{
+  postfx[k]=L.fx[k]/100; const el=$("#"+id); if(el){el.value=L.fx[k]; $("#"+id+"O").textContent=L.fx[k]} });
+ postfx.glitch=L.fx.glitch; if(fxGl)fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";
+ drawFrame(); pushHistory(); markDirty(); flashNow("Look applied: "+name) }
+(()=>{ const row=$("#looksRow"); if(!row)return;
+ Object.keys(LOOKS).forEach(n=>{ const b=document.createElement("button"); b.textContent=n; b.style.flex="1 1 30%";
+  b.onclick=()=>applyLook(n); row.appendChild(b) }) })();
 $("#videoVol").oninput=e=>{$("#videoVolO").textContent=e.target.value;vid.volume=e.target.value/100;if(vidGain)vidGain.gain.value=e.target.value/100};
 
 /* ---------- text overlays ---------- */
@@ -570,8 +586,50 @@ const TEMPLATES={
  unboxpro:{ratio:"9:16",fit:"fit",preset:"Clean Airy",trans:"bounce",texts:d=>[["📦 What's inside?",{start:0,end:Math.min(3,d),size:74,y:13,style:"pop",anim:"pop"}],["Watch till the end 👀",{start:0,end:d,size:50,y:87,style:"marker"}]]},
  travelpro:{ratio:"16:9",fit:"fill",preset:"Teal & Orange",trans:"flip",texts:d=>[["✈️ NEXT STOP",{start:0,end:Math.min(3,d),size:80,y:13,style:"grad",anim:"slide"}],["Travel diary · ep. 1",{start:0,end:d,size:48,y:88,style:"box"}]]},
  newyear:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎆 NEW YEAR",{start:0,end:Math.min(3,d),size:84,y:13,style:"grad",anim:"pop"}],["New goals — let's go 🚀",{start:0,end:d,size:50,y:87,style:"box"}]]},
- petfun:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"bounce",texts:d=>[["🐶 Meet the star",{start:0,end:Math.min(3,d),size:70,y:13,style:"marker",anim:"pop"}],["Follow for daily cuteness",{start:0,end:d,size:48,y:88,style:"sticker"}]]}
+ petfun:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"bounce",texts:d=>[["🐶 Meet the star",{start:0,end:Math.min(3,d),size:70,y:13,style:"marker",anim:"pop"}],["Follow for daily cuteness",{start:0,end:d,size:48,y:88,style:"sticker"}]]},
+ velocity:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"zoom",auto:"velocity",texts:d=>[["⚡ VELOCITY",{start:0,end:Math.min(2,d),size:88,y:14,style:"block",anim:"pop"}],["wait for the drop…",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ phonk:{ratio:"9:16",fit:"fill",preset:"Noir",trans:"shake",texts:d=>[["💀 PHONK",{start:0,end:Math.min(2.5,d),size:92,y:13,style:"block",anim:"pop"}],["drift mode: ON",{start:0,end:d,size:50,y:87,style:"neon"}]]},
+ anime:{ratio:"9:16",fit:"fill",preset:"Dream",trans:"flash",texts:d=>[["✨ ANIME EDIT",{start:0,end:Math.min(3,d),size:76,y:13,style:"grad",anim:"pop"}],["ep. 1 — the awakening",{start:0,end:d,size:48,y:87,style:"box"}]]},
+ y2k:{ratio:"9:16",fit:"fit",preset:"Neon Night",trans:"spin",texts:d=>[["💿 Y2K",{start:0,end:Math.min(3,d),size:88,y:14,style:"grad",anim:"pop"}],["★ est. 2000 ★",{start:0,end:d,size:52,y:87,style:"sticker"}]]},
+ vhs:{ratio:"4:5",fit:"fit",preset:"Vintage",trans:"fade",texts:d=>[["▶ PLAY — 1997",{start:0,end:Math.min(3,d),size:64,y:12,style:"type",anim:"fade"}],["REC ● memories",{start:0,end:d,size:48,y:88,style:"retro"}]]},
+ film35:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"cross",letter:true,texts:d=>[["35MM",{start:0,end:Math.min(3,d),size:72,y:13,style:"thin",anim:"fade"}],["shot on film",{start:0,end:d,size:46,y:88,style:"thin"}]]},
+ luxcar:{ratio:"16:9",fit:"fill",preset:"Noir",trans:"cross",texts:d=>[["🏎 NIGHT SPEC",{start:0,end:Math.min(3,d),size:80,y:13,style:"gold",anim:"slide"}],["Details in caption",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ nightdrive:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"zoom",texts:d=>[["🌃 NIGHT DRIVE",{start:0,end:Math.min(3,d),size:78,y:13,style:"neon",anim:"fade"}],["city lights therapy",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ gymbeast:{ratio:"9:16",fit:"fill",preset:"Noir",trans:"zoom",texts:d=>[["🦁 BEAST MODE",{start:0,end:Math.min(2.5,d),size:86,y:13,style:"block",anim:"pop"}],["PR attempt — watch",{start:0,end:d,size:50,y:87,style:"gold"}]]},
+ fightcamp:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"shake",texts:d=>[["🥊 FIGHT CAMP",{start:0,end:Math.min(3,d),size:80,y:13,style:"block",anim:"slide"}],["Round by round",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ dancechallenge:{ratio:"9:16",fit:"fill",preset:"Dream",trans:"bounce",texts:d=>[["💃 DANCE CHALLENGE",{start:0,end:Math.min(3,d),size:72,y:13,style:"grad",anim:"pop"}],["Duet this! 🎶",{start:0,end:d,size:52,y:87,style:"sticker"}]]},
+ tutorialpro:{ratio:"16:9",fit:"fit",preset:"Clean Airy",trans:"slideup",texts:d=>[["📘 TUTORIAL",{start:0,end:Math.min(3,d),size:76,y:12,style:"block",anim:"slide"}],["Step 1 — watch closely",{start:0,end:d,size:50,y:88,style:"marker"}]]},
+ coursepromo:{ratio:"16:9",fit:"fill",preset:"Cinematic",trans:"fade",texts:d=>[["🎓 NEW COURSE",{start:0,end:Math.min(3,d),size:78,y:13,style:"gold",anim:"fade"}],["Enroll — link in bio",{start:0,end:d,size:50,y:88,style:"box"}]]},
+ realestatepro:{ratio:"16:9",fit:"fill",preset:"Cinematic",trans:"cross",texts:d=>[["🎥 PROPERTY FILM",{start:0,end:Math.min(3,d),size:72,y:12,style:"thin",anim:"fade"}],["Book a private tour",{start:0,end:d,size:48,y:88,style:"gold"}]]},
+ hotelpromo:{ratio:"9:16",fit:"fill",preset:"Golden Hour",trans:"cross",texts:d=>[["🏨 STAY WITH US",{start:0,end:Math.min(3,d),size:74,y:13,style:"gold",anim:"fade"}],["Rates from — DM us",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ restaurantpromo:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"slideup",texts:d=>[["🍽 TASTE IT",{start:0,end:Math.min(3,d),size:78,y:13,style:"gold",anim:"pop"}],["Reserve your table",{start:0,end:d,size:50,y:88,style:"sticker"}]]},
+ fashionfilm:{ratio:"9:16",fit:"fill",preset:"Dream",trans:"cross",texts:d=>[["👗 FASHION FILM",{start:0,end:Math.min(3,d),size:72,y:13,style:"cursive",anim:"fade"}],["Collection 2026",{start:0,end:d,size:48,y:88,style:"thin"}]]},
+ beautytips:{ratio:"9:16",fit:"fit",preset:"Clean Airy",trans:"bounce",texts:d=>[["💄 BEAUTY TIPS",{start:0,end:Math.min(3,d),size:74,y:13,style:"marker",anim:"pop"}],["Save this routine 📌",{start:0,end:d,size:48,y:88,style:"sticker"}]]},
+ barberpro:{ratio:"9:16",fit:"fill",preset:"Noir",trans:"zoom",texts:d=>[["💈 FRESH FADE",{start:0,end:Math.min(3,d),size:80,y:13,style:"block",anim:"pop"}],["Book your chair ✂️",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ weddingfilm:{ratio:"16:9",fit:"fill",preset:"Dream",trans:"cross",letter:true,texts:d=>[["🎞 THE WEDDING FILM",{start:0,end:Math.min(3,d),size:70,y:13,style:"cursive",anim:"fade"}],["A & B — forever begins",{start:0,end:d,size:46,y:88,style:"thin"}]]},
+ babyshower:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"fade",texts:d=>[["👶 BABY SHOWER",{start:0,end:Math.min(3,d),size:72,y:13,style:"marker",anim:"pop"}],["Welcome, little one 💛",{start:0,end:d,size:50,y:87,style:"sticker"}]]},
+ travelcine:{ratio:"16:9",fit:"fill",preset:"Teal & Orange",trans:"cross",letter:true,texts:d=>[["🎬 TRAVEL FILM",{start:0,end:Math.min(3,d),size:78,y:13,style:"thin",anim:"fade"}],["Somewhere beautiful",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ droneview:{ratio:"16:9",fit:"fill",preset:"Cinematic",trans:"zoomout",texts:d=>[["🚁 FROM ABOVE",{start:0,end:Math.min(3,d),size:78,y:13,style:"block",anim:"fade"}],["Altitude: unlocked",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ citytour:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"slide",texts:d=>[["🏙 CITY TOUR",{start:0,end:Math.min(3,d),size:78,y:13,style:"gold",anim:"slide"}],["3 spots you missed",{start:0,end:d,size:50,y:87,style:"marker"}]]},
+ foodreview:{ratio:"9:16",fit:"fit",preset:"Warm",trans:"bounce",texts:d=>[["⭐ FOOD REVIEW",{start:0,end:Math.min(3,d),size:76,y:13,style:"pop",anim:"pop"}],["Honest rating inside",{start:0,end:d,size:50,y:87,style:"box"}]]},
+ asmrfood:{ratio:"9:16",fit:"fill",preset:"Clean Airy",trans:"fade",texts:d=>[["🎧 ASMR",{start:0,end:Math.min(3,d),size:80,y:13,style:"thin",anim:"fade"}],["Sound on 🔊",{start:0,end:d,size:50,y:87,style:"sticker"}]]},
+ gamingmontage:{ratio:"16:9",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎮 MONTAGE",{start:0,end:Math.min(3,d),size:84,y:13,style:"neon",anim:"pop"}],["Clip it. Ship it.",{start:0,end:d,size:50,y:88,style:"box"}]]},
+ streamhighlight:{ratio:"16:9",fit:"fill",preset:"Sharp Pop",trans:"shake",texts:d=>[["🔴 BEST MOMENTS",{start:0,end:Math.min(3,d),size:78,y:12,style:"block",anim:"slide"}],["From the live stream",{start:0,end:d,size:48,y:88,style:"box"}]]},
+ musicvideo:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"cross",letter:true,texts:d=>[["🎬 MUSIC VIDEO",{start:0,end:Math.min(3,d),size:76,y:13,style:"thin",anim:"fade"}],["Official video",{start:0,end:d,size:48,y:88,style:"gold"}]]},
+ concertlive:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎤 LIVE",{start:0,end:Math.min(3,d),size:88,y:13,style:"grad",anim:"pop"}],["What a night 🔥",{start:0,end:d,size:52,y:87,style:"box"}]]}
 };
+const TPL_META={reel:["🎬","Reel Hook"],cine:["🎞","Cinematic"],product:["🛍","Product Ad"],vlog:["📱","Vlog"],estate:["🏠","Real Estate"],quote:["💬","Quote"],news:["📰","Breaking News"],tutorial:["🎓","Tutorial Steps"],beforeafter:["🔀","Before / After"],countdown:["⏱","Countdown"],sale:["🏷","Big Sale"],travel:["✈️","Travel"],food:["🍔","Food"],fitness:["💪","Fitness"],gaming:["🎮","Gaming"],music:["🎵","Music Drop"],birthday:["🎂","Birthday"],business:["💼","Business"],minimal:["◻","Minimal"],podcast:["🎙","Podcast"],wedding:["💍","Wedding"],motivation:["🔥","Motivation"],sports:["⚽","Sports"],tech:["💻","Tech Review"],fashion:["👗","Fashion"],education:["📚","Education"],unboxing:["📦","Unboxing"],storytime:["📖","Story Time"],challenge:["🏆","Challenge"],recap:["⏪","Recap"],teaser:["👀","Teaser"],flashsale:["⚡","Flash Sale"],lyrics:["🎵","Lyrics"],meme:["😂","Meme"],cooking:["👨‍🍳","Cooking"],study:["📚","Study"],weddinginvite:["💍","Wedding Invite"],graduation:["🎓","Graduation"],ramadan:["🌙","Ramadan"],luxuryestate:["🏛","Luxury Estate"],sportnews:["⚽","Sport News"],unboxpro:["📦","Unbox Pro"],travelpro:["✈️","Travel Pro"],newyear:["🎆","New Year"],petfun:["🐶","Pet Fun"],velocity:["⚡","Velocity Edit"],phonk:["💀","Phonk"],anime:["✨","Anime Edit"],y2k:["💿","Y2K"],vhs:["📼","VHS Tape"],film35:["🎞","35mm Film"],luxcar:["🏎","Luxury Car"],nightdrive:["🌃","Night Drive"],gymbeast:["🦁","Beast Mode"],fightcamp:["🥊","Fight Camp"],dancechallenge:["💃","Dance Challenge"],tutorialpro:["📘","Tutorial Pro"],coursepromo:["🎓","Course Promo"],realestatepro:["🎥","Property Film"],hotelpromo:["🏨","Hotel Promo"],restaurantpromo:["🍽","Restaurant"],fashionfilm:["👗","Fashion Film"],beautytips:["💄","Beauty Tips"],barberpro:["💈","Barber Pro"],weddingfilm:["🎞","Wedding Film"],babyshower:["👶","Baby Shower"],travelcine:["🎬","Travel Film"],droneview:["🚁","Drone View"],citytour:["🏙","City Tour"],foodreview:["⭐","Food Review"],asmrfood:["🎧","ASMR Food"],gamingmontage:["🎮","Gaming Montage"],streamhighlight:["🔴","Stream Highlights"],musicvideo:["🎬","Music Video"],concertlive:["🎤","Concert Live"]};
+const TPL_GRADS=[["#f59e0b","#ef4444"],["#8b5cf6","#ec4899"],["#06b6d4","#3b82f6"],["#22c55e","#84cc16"],["#f97316","#f43f5e"],["#6366f1","#a855f7"],["#0ea5e9","#22d3ee"],["#eab308","#f97316"],["#ec4899","#8b5cf6"],["#14b8a6","#0ea5e9"],["#f43f5e","#fb923c"],["#475569","#0f172a"]];
+function renderTplCards(){ const g=$("#tplGrid"); if(!g)return; g.innerHTML="";
+ Object.keys(TEMPLATES).forEach((k,i)=>{ const mt=TPL_META[k]||["🎬",k]; const gr=TPL_GRADS[i%TPL_GRADS.length];
+  const b=document.createElement("button"); b.className="tplchip tplcard"; b.dataset.tpl=k;
+  b.style.background=`linear-gradient(135deg,${gr[0]},${gr[1]})`;
+  b.innerHTML=`<span class="tc-em">${mt[0]}</span><span class="tc-lb">${mt[1]}</span>`;
+  b.onclick=()=>applyTemplate(k); g.appendChild(b) });
+ const c=document.createElement("button"); c.className="tplchip tplcard"; c.dataset.tpl="none";
+ c.style.background="#232733";
+ c.innerHTML=`<span class="tc-em">✖</span><span class="tc-lb">Clear</span>`;
+ c.onclick=()=>applyTemplate("none"); g.appendChild(c) }
 function applyTemplate(name){
  document.querySelectorAll(".tplchip").forEach(c=>c.classList.toggle("sel",c.dataset.tpl===name));
  texts=texts.filter(t=>!t.tpl); letterbox=false;
@@ -582,11 +640,16 @@ function applyTemplate(name){
  curTransition=T.trans; $("#transSel").value=T.trans;
  letterbox=!!T.letter;
  T.texts(d).forEach(([c,o])=>mkTplText(c,o));
+ if(T.auto==="velocity"){
+  const n=segments.length?splitAtBeats(0):0;
+  if(n>0)flashNow("Velocity edit ✓ — first clip auto-cut into "+n+" pieces on the beat");
+  else flashNow("Velocity style applied — for auto-cutting: pick music (Audio) → Detect beats → re-apply");
+ }
  renderTextTrack(); renderTextList(); drawFrame(); pushHistory();
- flashNow("Template applied ✓ — tap the gold texts on the right to make them yours");
+ if(T.auto!=="velocity")flashNow("Template applied ✓ — tap the gold texts on the right to make them yours");
  if(window.innerWidth<=980)document.querySelector(".stage").scrollIntoView({behavior:"smooth"});
 }
-document.querySelectorAll(".tplchip").forEach(c=>c.onclick=()=>applyTemplate(c.dataset.tpl));
+renderTplCards();
 document.querySelectorAll("#stickers button").forEach(b=>b.onclick=()=>{
  const t={id:"t"+(++txtSeq),content:b.textContent,start:+progTime().toFixed(2),end:+Math.min((progDur()||progTime()+2),progTime()+2).toFixed(2),size:96,color:"#ffffff",stroke:false,x:50,y:45};
  if(t.end<=t.start)t.end=t.start+1;
@@ -792,25 +855,32 @@ $("#beatBtn").onclick=async()=>{
  try{ const b=await computeBeats(m); st.textContent="✓ "+b.length+" beats found in “"+m.name+"” — ticks are under the timeline."; renderBeatTicks() }
  catch(e){ st.textContent="Beat detection failed on that file." }
 };
-$("#beatSplitBtn").onclick=()=>{
- const idx=segments.findIndex(x=>x.id===selSeg), s=segments[idx];
+function splitAtBeats(idx){
+ const s=segments[idx]; if(!s)return 0;
  const mid=$("#musicSel").value, m=mid?media.get(mid):null;
- if(!s){flashNow("Select a clip on the timeline first");return}
- if(!m||!m.beats||!m.beats.length){flashNow("Detect the beats first (button above)");return}
+ if(!m||!m.beats||!m.beats.length)return -1;
  const st0=segStart(idx), en0=st0+segDur(s), mdur=m.duration||en0;
  let cuts=[];
  for(let base=0;base<en0;base+=mdur)for(const b of m.beats){const t=base+b; if(t>st0+0.18&&t<en0-0.18)cuts.push(t)}
  cuts=[...new Set(cuts.map(c=>+c.toFixed(2)))].sort((a,b)=>a-b);
- if(!cuts.length){flashNow("No beats fall inside the selected clip");return}
+ if(!cuts.length)return 0;
  if(cuts.length>39)cuts=cuts.filter((_,i)=>i%Math.ceil(cuts.length/39)===0);
- const pieces=[]; let prevIn=s.in, prevCut=st0;
+ const pieces=[]; let prevIn=s.in;
  const mk=(a,b2)=>{const ns={...s,id:"s"+(++segSeq),in:a,out:b2}; if(ns.freeze)delete ns.freeze; pieces.push(ns)};
- for(const ct of cuts){ const mi=s.in+(ct-st0)*(s.speed||1); mk(prevIn,mi); prevIn=mi; prevCut=ct }
+ for(const ct of cuts){ const mi=s.in+(ct-st0)*(s.speed||1); mk(prevIn,mi); prevIn=mi }
  mk(prevIn,s.out);
  segments.splice(idx,1,...pieces);
  curSeg=idx; selSeg=pieces[0].id;
+ return pieces.length;
+}
+$("#beatSplitBtn").onclick=()=>{
+ const idx=segments.findIndex(x=>x.id===selSeg);
+ if(idx<0){flashNow("Select a clip on the timeline first");return}
+ const n=splitAtBeats(idx);
+ if(n===-1){flashNow("Detect the beats first (button above)");return}
+ if(n===0){flashNow("No beats fall inside the selected clip");return}
  renderTimeline(); renderSegPanel(); pushHistory();
- flashNow("Beat sync ✓ — clip cut into "+pieces.length+" pieces on the beat");
+ flashNow("Beat sync ✓ — clip cut into "+n+" pieces on the beat");
 };
 /* keyboard shortcuts */
 document.addEventListener("keydown",e=>{
@@ -896,6 +966,12 @@ $("#frameBtn").onclick=()=>{ drawFrame();
  cv.toBlob(b=>{ if(!b)return; const a=document.createElement("a");
   a.href=URL.createObjectURL(b); a.download=expFileName()+"-frame.png"; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000); flashNow("Frame saved as PNG 📸") },"image/png") };
+document.querySelectorAll("[data-stock]").forEach(b=>b.onclick=async()=>{
+ const name=b.dataset.stock; b.disabled=true;
+ try{ const r=await fetch("assets/stock/"+name); const blob=await r.blob();
+  addFiles([new File([blob],name,{type:"image/jpeg"})]);
+  flashNow("Stock image added to your timeline ✓") }catch(e){ flashNow("Stock load failed") }
+ b.disabled=false });
 $("#projImport").onclick=()=>$("#projIn").click();
 $("#projIn").onchange=async e=>{
  const f=e.target.files[0]; e.target.value=""; if(!f)return;
