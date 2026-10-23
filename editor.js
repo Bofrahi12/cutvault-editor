@@ -5,6 +5,7 @@ const cv=$("#cv"), ctx=cv.getContext("2d");
 const vid=$("#vid"), imgEl=$("#imgEl"), musEl=$("#musEl"), mus2El=$("#mus2El"), vid2=$("#vid2"), img2=$("#img2");
 let media=new Map(), segments=[], texts=[];
 let overlays=[], ovSeq=0, selOv=null;
+let blurs=[];
 let selSeg=null, selText=null, midSeq=0, segSeq=0, txtSeq=0;
 let playing=false, curSeg=-1, segStartedAt=0, imgSegStart=0, exporting=false;
 let audioCtx=null, vidGain=null, musGain=null, mus2Gain=null, streamDest=null, vidSrcNode=null, musSrcNode=null, mus2SrcNode=null;
@@ -204,7 +205,11 @@ let softT=null;function renderTimelineSoft(){clearTimeout(softT);softT=setTimeou
 $("#splitBtn").onclick=()=>{
  const i=curSeg>=0?curSeg:segments.findIndex(x=>x.id===selSeg); if(i<0)return;
  const s=segments[i],m=media.get(s.mediaId); if(!m||m.type==="image")return;
- const pt=progTime(), off=pt-segStart(i); if(off<=0.05||off>=segDur(s)-0.05){flashNow("Move the playhead inside the selected clip to split it");return}
+ const pt=progTime(); let off=pt-segStart(i); if(off<=0.05||off>=segDur(s)-0.05){flashNow("Move the playhead inside the selected clip to split it");return}
+ if(snapOn&&m.beats&&m.beats.length){ const srcT=s.in+off*(s.speed||1);
+  let bestB=null, bd=0.18;
+  for(const b of m.beats){ const dd=Math.abs(b-srcT); if(dd<bd){bd=dd;bestB=b} }
+  if(bestB!=null){ off=(bestB-s.in)/(s.speed||1); flashNow("Snapped to the beat 🧲") } }
  const cut=s.in+off*(s.speed||1);
  const s2={id:"s"+(++segSeq),mediaId:s.mediaId,in:cut,out:s.out,dur:3,speed:s.speed,zoom:s.zoom,rot:s.rot,flip:s.flip,ox:s.ox,oy:s.oy};
  s.out=cut; segments.splice(i+1,0,s2); selSeg=s2.id; renderTimeline(); pushHistory(); flashNow("Clip split ✂");
@@ -359,6 +364,19 @@ function kfEase(name,p){ switch(name){
  case "bounce": { const n=7.5625,d=2.75; if(p<1/d)return n*p*p; if(p<2/d)return n*(p-=1.5/d)*p+0.75; if(p<2.5/d)return n*(p-=2.25/d)*p+0.9375; return n*(p-=2.625/d)*p+0.984375 }
  case "back": { const c=1.70158,q=p-1; return 1+(c+1)*q*q*q+c*q*q }
  default: return p } }
+function drawCensor(pt){ if(!blurs.length)return; const W=cv.width,H=cv.height;
+ const tc=drawCensor.tc||(drawCensor.tc=document.createElement("canvas"));
+ for(const b of blurs){ if(pt<b.start||pt>b.end)continue;
+  const x=Math.round(W*b.x/100), y=Math.round(H*b.y/100), w=Math.round(W*b.w/100), h=Math.round(H*b.h/100);
+  if(w<8||h<8)continue;
+  const t2=tc.getContext("2d");
+  if(b.mode==="mosaic"){ const f=Math.max(8,Math.round(w/26)); tc.width=Math.max(2,Math.round(w/f)); tc.height=Math.max(2,Math.round(h/f));
+   t2.drawImage(cv,x,y,w,h,0,0,tc.width,tc.height);
+   ctx.save(); ctx.imageSmoothingEnabled=false; ctx.drawImage(tc,0,0,tc.width,tc.height,x,y,w,h); ctx.restore() }
+  else { tc.width=w; tc.height=h; t2.drawImage(cv,x,y,w,h,0,0,w,h);
+   ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+   ctx.filter=`blur(${Math.max(8,Math.round(W*0.016))}px)`;
+   ctx.drawImage(tc,x-6,y-6,w+12,h+12); ctx.restore(); ctx.filter="none" } } }
 function drawFrame(){
  const W=cv.width,H=cv.height;ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
  const s=segments[curSeg],m=s?media.get(s.mediaId):null;
@@ -403,6 +421,7 @@ function drawFrame(){
       ROT=gv(A,"rot",0)+(gv(B,"rot",0)-gv(A,"rot",0))*e;
       window.__kfDebug={z:+Z.toFixed(3),x:+OX.toFixed(1),y:+OY.toFixed(1),op:+OP.toFixed(2),rot:+ROT.toFixed(1)}}
     if(s.track&&trackPt)Z*=1.18;
+    if(s.stab)Z*=1.07;
     const doDraw=(alpha,useF)=>{
       ctx.save();ctx.globalAlpha=alpha*OP;if(useF)ctx.filter=filterStr(s)+(blurPx?` blur(${blurPx}px)`:"");
       let sc; if(fit==="fill")sc=Math.max(W/sw,H/sh); else sc=Math.min(W/sw,H/sh);
@@ -413,6 +432,7 @@ function drawFrame(){
       ctx.translate(W/2+(OX/100)*W+slideX+shX, H/2+(OY/100)*H+shY+slideYv);
       if(s.flip)ctx.scale(-1,1);
       if(s.track&&trackPt){const sx2=Math.max(-(dw-W)/2,Math.min((dw-W)/2,-(trackPt.x-0.5)*dw)), sy2=Math.max(-(dh-H)/2,Math.min((dh-H)/2,-(trackPt.y-0.5)*dh)); ctx.translate(sx2,sy2)}
+      if(s.stab&&s.stab.off&&s.stab.off.length){const si=Math.max(0,Math.min(s.stab.off.length-1,Math.round(lt/(s.stab.step||0.2))));const so=s.stab.off[si];ctx.translate(so[0]*(W/96),so[1]*(W/96))}
       ctx.rotate((s.rot||0)*Math.PI/180+spinA+ROT*Math.PI/180);
       ctx.drawImage(src,-dw/2,-dh/2,dw,dh);ctx.restore();
     };
@@ -432,6 +452,7 @@ function drawFrame(){
  const pt=progTime();
  drawOverlays(pt);
  applyPostFX();
+ drawCensor(pt);
  for(const t of texts){if(pt<t.start||pt>t.end)continue;
   const age=pt-t.start, remain=t.end-pt;
   let alpha=1, scaleK=1, yOff=0;
@@ -1053,6 +1074,92 @@ $("#beatBtn").onclick=async()=>{
  try{ const b=await computeBeats(m); st.textContent="✓ "+b.length+" beats found in “"+m.name+"” — ticks are under the timeline."; renderBeatTicks() }
  catch(e){ st.textContent="Beat detection failed on that file." }
 };
+/* ----- Stabilization: block-matching motion analysis → smoothed counter-shift ----- */
+async function analyzeStab(s){ const m=media.get(s.mediaId); if(!m||m.type==="image"){flashNow("Select a video clip first");return}
+ stopPlayback();
+ vid.src=m.url; vid.muted=true;
+ await new Promise(r=>{ if(vid.readyState>=1)r(); else { vid.onloadedmetadata=()=>r(); setTimeout(r,2500) } });
+ const W2=96, ar=(vid.videoWidth&&vid.videoHeight)?vid.videoHeight/vid.videoWidth:((m.w&&m.h)?m.h/m.w:1.25), H2=Math.max(48,Math.round(W2*ar));
+ const c2=document.createElement("canvas"); c2.width=W2; c2.height=H2;
+ const g2=c2.getContext("2d",{willReadFrequently:true});
+ const step=0.2, t0=s.in, t1=Math.min(s.out,s.in+30);
+ const frames=[];
+ const seek=t=>new Promise(r=>{ let done=false; const fin=()=>{if(done)return;done=true;vid.removeEventListener("seeked",fin);r()};
+  vid.addEventListener("seeked",fin); setTimeout(fin,1500);
+  try{ if(Math.abs(vid.currentTime-t)<0.02&&vid.readyState>=2)fin(); else vid.currentTime=t }catch(e){fin()} });
+ for(let t=t0;t<=t1+0.001;t+=step){ await seek(Math.min(t,t1));
+  if(vid.requestVideoFrameCallback)await new Promise(r=>{vid.requestVideoFrameCallback(()=>r()); setTimeout(r,120)});
+  else await new Promise(r=>setTimeout(r,60));
+  try{ g2.drawImage(vid,0,0,W2,H2); const d=g2.getImageData(0,0,W2,H2).data;
+   const gr=new Float32Array(W2*H2);
+   for(let i=0,j=0;i<d.length;i+=4,j++)gr[j]=d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11;
+   frames.push(gr) }catch(e){}
+  flashNow("🎯 Stabilizing… "+Math.round((t-t0)/Math.max(0.1,t1-t0)*100)+"%") }
+ vid.muted=false;
+ if(frames.length<4){ flashNow("Clip too short to stabilize"); loadSegment(curSeg<0?0:curSeg,false); return }
+ const path=[[0,0]];
+ for(let f=1;f<frames.length;f++){ const A=frames[f-1], B=frames[f], dxs=[], dys=[], ax=[], ay=[];
+  for(let by=10;by<H2-26;by+=22)for(let bx=6;bx<W2-24;bx+=22){
+   // texture gate: flat blocks (skies, studio backdrops) carry no motion signal
+   let mean=0, ns=0; for(let y=0;y<16;y+=4)for(let x=0;x<16;x+=4){ mean+=A[(by+y)*W2+bx+x]; ns++ }
+   mean/=ns; let va=0; for(let y=0;y<16;y+=4)for(let x=0;x<16;x+=4){ const dv=A[(by+y)*W2+bx+x]-mean; va+=dv*dv }
+   const textured=Math.sqrt(va/ns)>=6;
+   const cands=[];
+   for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){ let sad=0;
+    for(let y=0;y<16;y+=3)for(let x=0;x<16;x+=3){ sad+=Math.abs(A[(by+y)*W2+bx+x]-B[(by+y+dy)*W2+bx+x+dx]) }
+    cands.push([sad,dx,dy]) }
+   cands.sort((p,q)=>p[0]-q[0]);
+   const best=cands[0][0]; let pick=cands[0];
+   for(const c of cands){ if(c[0]>best*1.03+2)break;
+    if(Math.abs(c[1])+Math.abs(c[2])<Math.abs(pick[1])+Math.abs(pick[2]))pick=c }
+   ax.push(pick[1]); ay.push(pick[2]);
+   if(textured){ dxs.push(pick[1]); dys.push(pick[2]); window.__stabGated=(window.__stabGated||0)+1 } }
+  const med=a=>{a.sort((p,q)=>p-q);return a.length?a[a.length>>1]:0};
+  const px=path[path.length-1], ux=dxs.length>=2?dxs:ax, uy=dys.length>=2?dys:ay;
+  path.push(ux.length?[px[0]+med(ux), px[1]+med(uy)]:[px[0], px[1]]) }
+ const R=4, offs=path.map((p,i)=>{ let sx=0, sy=0, n=0;
+   for(let k=-R;k<=R;k++){ const q=path[Math.max(0,Math.min(path.length-1,i+k))]; sx+=q[0]; sy+=q[1]; n++ }
+   const cap=7; return [Math.max(-cap,Math.min(cap,sx/n-p[0])), Math.max(-cap,Math.min(cap,sy/n-p[1]))] });
+ const varOf=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length; return a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length};
+ const rawV=varOf(path.map(p=>p[0]))+varOf(path.map(p=>p[1]));
+ const res=path.map((p,i)=>[p[0]+offs[i][0], p[1]+offs[i][1]]);
+ const resV=varOf(res.map(p=>p[0]))+varOf(res.map(p=>p[1]));
+ window.__stabDebug={frames:frames.length, rawVar:+rawV.toFixed(2), resVar:+resV.toFixed(2), reduction:rawV>0?+(100*(1-resV/rawV)).toFixed(0):0, gated:Math.round((window.__stabGated||0)/Math.max(1,frames.length-1)*10)/10, frameDiff:window.__stabFD||0};
+ { const a=frames[0], b=frames[Math.min(3,frames.length-1)]; if(a&&b){ let s=0; for(let i=0;i<a.length;i+=37)s+=Math.abs(a[i]-b[i]); window.__stabDebug.frameDiff=Math.round(s/(a.length/37)) } }
+ s.stab={step, off:offs};
+ loadSegment(curSeg<0?0:curSeg,false); drawFrame(); pushHistory(); markDirty();
+ flashNow("🎯 Stabilized ✓ — camera shake reduced "+window.__stabDebug.reduction+"%") }
+$("#stabBtn").onclick=()=>{ const s=segments.find(x=>x.id===selSeg)||segments[curSeg];
+ if(!s){flashNow("Select a clip first");return}
+ if(s.stab){ delete s.stab; drawFrame(); pushHistory(); flashNow("Stabilization removed"); return }
+ analyzeStab(s) };
+/* ----- Privacy blur regions ----- */
+function renderBlurPanel(){ const p=$("#blurPanel"); if(!p)return;
+ if(!blurs.length){ p.innerHTML='<p class="hint">No blur regions. Add one, then drag its sliders to cover a face or a plate.</p>'; return }
+ p.innerHTML="";
+ blurs.forEach((b,i)=>{ const d=document.createElement("div"); d.className="text-item";
+  d.innerHTML=`<div class="row"><div class="field"><label>Mode</label><select data-bk="mode" style="width:100%"><option value="mosaic" ${b.mode==="mosaic"?"selected":""}>Mosaic</option><option value="blur" ${b.mode==="blur"?"selected":""}>Blur</option></select></div>
+  <div class="field"><label>Start (s)</label><input type="number" step="0.1" min="0" value="${b.start}" data-bk="start"></div>
+  <div class="field"><label>End (s)</label><input type="number" step="0.1" min="0" value="${b.end}" data-bk="end"></div></div>
+  <div class="slider-row"><span>↔</span><input type="range" min="0" max="95" value="${b.x}" data-bk="x"><output>${b.x}%</output></div>
+  <div class="slider-row"><span>↕</span><input type="range" min="0" max="95" value="${b.y}" data-bk="y"><output>${b.y}%</output></div>
+  <div class="slider-row"><span>Width</span><input type="range" min="8" max="100" value="${b.w}" data-bk="w"><output>${b.w}%</output></div>
+  <div class="slider-row"><span>Height</span><input type="range" min="5" max="100" value="${b.h}" data-bk="h"><output>${b.h}%</output></div>
+  <button class="danger" style="width:100%">🗑 Delete region</button>`;
+  d.querySelectorAll("input,select").forEach(inp=>{ inp.oninput=()=>{ const k=inp.dataset.bk;
+    b[k]=k==="mode"?inp.value:+inp.value;
+    const o=inp.parentElement.querySelector("output"); if(o)o.textContent=inp.value+"%";
+    drawFrame() }; inp.onchange=()=>pushHistory() });
+  d.querySelector("button.danger").onclick=()=>{ blurs.splice(i,1); renderBlurPanel(); drawFrame(); pushHistory() };
+  p.appendChild(d) }) }
+$("#blurAdd").onclick=()=>{ const t=+progTime().toFixed(1);
+ blurs.push({id:"b"+Date.now(),start:t,end:t+3,x:30,y:32,w:40,h:22,mode:"mosaic"});
+ renderBlurPanel(); drawFrame(); pushHistory(); flashNow("Blur region added — position it with the sliders") };
+renderBlurPanel();
+/* ----- Beat snap for splits ----- */
+let snapOn=false;
+$("#snapBtn").onclick=()=>{ snapOn=!snapOn; $("#snapBtn").textContent="Beat snap: "+(snapOn?"ON":"OFF");
+ flashNow(snapOn?"Splits will snap to the beat 🧲":"Beat snap off") };
 let attrClip=null;
 $("#copyAttrs").onclick=()=>{ const s=segments.find(x=>x.id===selSeg); if(!s){flashNow("Select a clip first");return}
  attrClip=JSON.parse(JSON.stringify({fx:s.fx||null,vol:s.vol,speed:s.speed,ramp:s.ramp||"none",zoom:s.zoom,ox:s.ox,oy:s.oy,flip:s.flip,rot:s.rot,kf:s.kf||null,chroma:s.chroma||null,cutout:s.cutout||null}));
@@ -1468,7 +1575,7 @@ function tryRelink(){
 }
 /* ----- undo / redo ----- */
 let hist=[], histIdx=-1, histLock=false;
-function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
+function snapshotState(){return JSON.stringify({segments,texts,overlays,blurs,selSeg,
  ratio:$("#ratioSel").value,fit:$("#fitSel").value,res:$("#resSel")?.value||"1",
  preset:curPreset,trans:curTransition,letterbox,music:$("#musicSel").value,
  int:filterIntensity,fi:musicFadeIn,fo:musicFadeOut,mi:musicIn,
@@ -1486,7 +1593,7 @@ function pushHistory(){
 function applySnapshot(s){
  histLock=true;
  try{const o=JSON.parse(s);
-  segments=o.segments||[]; texts=o.texts||[]; overlays=o.overlays||[]; selSeg=o.selSeg; selOv=null;
+  segments=o.segments||[]; texts=o.texts||[]; overlays=o.overlays||[]; blurs=o.blurs||[]; selSeg=o.selSeg; selOv=null;
   if(o.ratio){$("#ratioSel").value=o.ratio;const[w,h]=RATIOS[o.ratio];const f=+(o.res||1);$("#resSel").value=String(o.res||"1");cv.width=Math.round(w*f);cv.height=Math.round(h*f)}
   if(o.fit)$("#fitSel").value=o.fit;
   curTransition=o.trans||"none"; $("#transSel").value=curTransition; letterbox=!!o.letterbox;

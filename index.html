@@ -276,6 +276,15 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <p class="hint" style="margin-top:7px">Freeze: pause playback on the frame you want, then tap Freeze. Reverse creates a reversed copy of the selected clip (on-device, 60s max).</p>
   <div class="sub">Overlay (picture-in-picture)</div>
   <div id="ovPanel"><p class="hint">In Media, tap “＋ PiP” on any video or photo to place it on top of your main video. Then tap its bar on the overlay track to move, resize or retime it.</p></div>
+  <div class="sub">🎯 Stabilize — smooth out shaky footage</div>
+  <button id="stabBtn" style="width:100%">🎯 Stabilize selected clip</button>
+  <p class="hint">Analyzes the clip's camera motion on-device and counter-shifts every frame (first 30 s). Tap again to remove it.</p>
+  <div class="sub">🔒 Privacy blur — faces, plates, screens</div>
+  <button id="blurAdd" style="width:100%">＋ Add blur region at playhead</button>
+  <div id="blurPanel" style="margin-top:8px"></div>
+  <div class="sub">🧲 Split on the beat</div>
+  <div class="row"><button id="snapBtn" style="flex:1">Beat snap: OFF</button></div>
+  <p class="hint">When on, splitting a clip snaps the cut to the nearest detected music beat.</p>
 </div>
 
 <div class="sheet" id="sheet-audio">
@@ -481,7 +490,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v19 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v20 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
