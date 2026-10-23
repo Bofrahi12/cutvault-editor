@@ -424,6 +424,14 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <div class="slider-row"><span>Split tone</span><input type="range" id="fxSt" min="0" max="100" value="0"><output id="fxStO">0</output></div>
   <div class="row" style="align-items:center;gap:14px"><span style="font-size:12.5px;color:var(--mut)">Shadows</span><input type="color" id="fxStSh" value="#20306e" style="width:52px;height:36px"><span style="font-size:12.5px;color:var(--mut)">Highlights</span><input type="color" id="fxStHi" value="#ffb36b" style="width:52px;height:36px"></div>
   <div class="row"><button id="fxGlitch">📺 Glitch bursts: OFF</button></div>
+  <div class="sub">🎬 Effect looks — one tap (Premiere / VN style)</div>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    <button id="fxVhs" style="flex:1 1 45%">📼 VHS tape: OFF</button>
+    <button id="fxFilm" style="flex:1 1 45%">🎞 Old film: OFF</button>
+    <button id="fxRgb" style="flex:1 1 45%">🌈 RGB split: OFF</button>
+    <button id="fxTilt" style="flex:1 1 45%">🔭 Tilt-shift: OFF</button>
+  </div>
+  <p class="hint">One-tap looks, no sliders needed: VHS scanlines + tracking band, scratched warm old-film, chromatic RGB fringing, and a miniature tilt-shift blur. They apply to preview and both exports, and save with the project.</p>
   <div class="sub">🎚 LUT — professional color grades</div>
   <div class="row" style="flex-wrap:wrap;gap:7px">
     <button data-lut="teal" style="flex:1 1 28%">Teal &amp; Orange</button>
@@ -455,7 +463,14 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <option value="bounce">Bounce in</option>
     <option value="whip">Whip pan (pro)</option>
     <option value="zoomblur">Zoom blur (pro)</option>
+    <option value="barn">Barn doors (pro)</option>
+    <option value="blinds">Venetian blinds (pro)</option>
+    <option value="clock">Clock wipe (pro)</option>
+    <option value="checker">Checkerboard (pro)</option>
+    <option value="roll">Page roll (pro)</option>
+    <option value="glitch">Glitch cut (pro)</option>
   </select>
+  <div class="row" id="transChips" style="flex-wrap:wrap;gap:6px;margin-top:8px"></div>
 </div>
 
 <div class="sheet" id="sheet-ratio">
@@ -503,7 +518,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v22 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v23 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

@@ -285,6 +285,11 @@ if(duckBtnEl)duckBtnEl.onclick=()=>{duckOn=!duckOn;duckBtnEl.textContent=duckOn?
  el.onchange=()=>{pushHistory();markDirty()} });
 const fxGl=$("#fxGlitch");
 if(fxGl)fxGl.onclick=()=>{postfx.glitch=!postfx.glitch;fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";drawFrame();pushHistory();markDirty()};
+function syncFxLookBtns(){ const map=[["#fxVhs","vhs","📼 VHS tape"],["#fxFilm","film","🎞 Old film"],["#fxRgb","rgb","🌈 RGB split"],["#fxTilt","tilt","🔭 Tilt-shift"]];
+ map.forEach(([id,k,lbl])=>{ const b=$(id); if(b)b.textContent=lbl+(postfx[k]?" ON":" OFF") }) }
+[["#fxVhs","vhs"],["#fxFilm","film"],["#fxRgb","rgb"],["#fxTilt","tilt"]].forEach(([id,k])=>{ const b=$(id);
+ if(b)b.onclick=()=>{ postfx[k]=postfx[k]?0:1; syncFxLookBtns(); drawFrame(); pushHistory(); markDirty();
+  flashNow(postfx[k]?"Effect look on 🎬":"Effect look off") } });
 const LOOKS={
  "🎬 Cinematic Teal":{preset:"Teal & Orange",fx:{vig:45,grain:35,glow:0,leak:0,glitch:false}},
  "📼 Vintage Film":{preset:"Vintage",fx:{vig:30,grain:65,glow:0,leak:40,glitch:false}},
@@ -477,12 +482,21 @@ function drawFrame(){
     if(intK<0.999){doDraw(1,false);doDraw(intK,true)}else{doDraw(1,true)}
     if(clipped)ctx.restore();
     }
+    const tpO=Math.max(0,Math.min(1,lt/0.45));
     if(curTransition==="dip"&&ld>0.8){const a=Math.min(1,lt/0.35,(ld-lt)/0.35);if(a<1){ctx.fillStyle=`rgba(0,0,0,${(1-Math.max(a,0)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}}
     if(curTransition==="flash"&&lt<0.28){ctx.fillStyle=`rgba(255,255,255,${(0.85*(1-lt/0.28)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
     if(curTransition==="fade"&&lt<0.45){ctx.fillStyle=`rgba(0,0,0,${(1-lt/0.45).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
     if(curTransition==="cross"&&prevFrame&&lt<0.5&&prevFrame.width===W){ctx.save();ctx.globalAlpha=1-lt/0.5;ctx.drawImage(prevFrame,0,0,W,H);ctx.restore()}
-    if(curTransition==="whip"&&prevFrame&&tp<1&&prevFrame.width===W){ctx.save();ctx.drawImage(prevFrame,-Math.pow(tp,0.55)*W,0,W,H);ctx.restore()}
-    if(curTransition==="zoomblur"&&prevFrame&&tp<1&&prevFrame.width===W){ctx.save();ctx.globalAlpha=(1-tp)*0.85;const zw=W*(1+0.35*(1-tp)),zh=H*(1+0.35*(1-tp));ctx.drawImage(prevFrame,(W-zw)/2,(H-zh)/2,zw,zh);ctx.restore()}
+    if(curTransition==="whip"&&prevFrame&&tpO<1&&prevFrame.width===W){ctx.save();ctx.drawImage(prevFrame,-Math.pow(tpO,0.55)*W,0,W,H);ctx.restore()}
+    if(curTransition==="zoomblur"&&prevFrame&&tpO<1&&prevFrame.width===W){ctx.save();ctx.globalAlpha=(1-tpO)*0.85;const zw=W*(1+0.35*(1-tpO)),zh=H*(1+0.35*(1-tpO));ctx.drawImage(prevFrame,(W-zw)/2,(H-zh)/2,zw,zh);ctx.restore()}
+    if(prevFrame&&tpO<1&&prevFrame.width===W){
+     if(curTransition==="barn"){ctx.save();ctx.drawImage(prevFrame,0,0,W/2,H,-tpO*W/2,0,W/2,H);ctx.drawImage(prevFrame,W/2,0,W/2,H,W/2+tpO*W/2,0,W/2,H);ctx.restore()}
+     else if(curTransition==="blinds"){ctx.save();const NB=8,bh=H/NB;for(let i=0;i<NB;i++){const hh=bh*(1-tpO);if(hh>0.5)ctx.drawImage(prevFrame,0,i*bh,W,bh,0,i*bh,W,hh)}ctx.restore()}
+     else if(curTransition==="roll"){ctx.save();const rh=Math.max(0,H*(1-tpO));if(rh>1){ctx.drawImage(prevFrame,0,0,W,H,0,0,W,rh);const gr=ctx.createLinearGradient(0,Math.max(0,rh-26),0,rh);gr.addColorStop(0,"rgba(0,0,0,0)");gr.addColorStop(1,"rgba(0,0,0,.45)");ctx.fillStyle=gr;ctx.fillRect(0,Math.max(0,rh-26),W,26)}ctx.restore()}
+     else if(curTransition==="clock"){const tcK=drawFrame.tcK||(drawFrame.tcK=document.createElement("canvas"));tcK.width=W;tcK.height=H;const g2=tcK.getContext("2d");g2.clearRect(0,0,W,H);g2.drawImage(prevFrame,0,0);g2.globalCompositeOperation="destination-out";g2.beginPath();g2.moveTo(W/2,H/2);const RR=Math.hypot(W,H)/2;g2.arc(W/2,H/2,RR,-Math.PI/2,-Math.PI/2+tpO*Math.PI*2);g2.closePath();g2.fill();g2.globalCompositeOperation="source-over";ctx.save();ctx.drawImage(tcK,0,0);ctx.restore()}
+     else if(curTransition==="checker"){ctx.save();const C=6,Rw=8,cw2=W/C,ch2=H/Rw;for(let i=0;i<C;i++)for(let j=0;j<Rw;j++){const dly=(i+j)/(C+Rw-2)*0.55;const p2=Math.max(0,Math.min(1,(tpO-dly)/0.45));if(p2>=1)continue;const sc2=1-p2;ctx.drawImage(prevFrame,i*cw2,j*ch2,cw2,ch2,i*cw2+cw2*(1-sc2)/2,j*ch2+ch2*(1-sc2)/2,cw2*sc2,ch2*sc2)}ctx.restore()}
+     else if(curTransition==="glitch"){ctx.save();const bands=12,bh2=H/bands,seed=Math.floor(lt*24);for(let k=0;k<bands;k++){const off=((k*37+seed*13)%17-8)*3;if(k%2===0)ctx.drawImage(prevFrame,0,k*bh2,W,bh2,off,k*bh2,W,bh2)}ctx.globalAlpha=0.16;ctx.drawImage(prevFrame,((seed*7)%9-4),0);ctx.restore()}
+    }
    }
   }
  }
@@ -532,14 +546,14 @@ function drawFrame(){
  if(letterbox){ctx.fillStyle="#000";ctx.fillRect(0,0,W,Math.round(H*0.11));ctx.fillRect(0,Math.round(H*0.89),W,Math.round(H*0.11))}
 }
 /* ----- post FX (whole-video layer, drawn after clips, before text) ----- */
-let postfx={vig:0,grain:0,glow:0,leak:0,glitch:false,st:0,stSh:"#20306e",stHi:"#ffb36b"};
+let postfx={vig:0,grain:0,glow:0,leak:0,glitch:false,st:0,stSh:"#20306e",stHi:"#ffb36b",vhs:0,film:0,rgb:0,tilt:0};
 const noiseCvs=document.createElement("canvas"); noiseCvs.width=noiseCvs.height=256;
 { const nx=noiseCvs.getContext("2d"); const im=nx.createImageData(256,256);
   for(let i=0;i<im.data.length;i+=4){const v=(Math.random()*255)|0;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255}
   nx.putImageData(im,0,0) }
 const fxCvs=document.createElement("canvas"), fxCtx=fxCvs.getContext("2d");
 function applyPostFX(){
- const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch&&!F.st&&!lutTex)return;
+ const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch&&!F.st&&!F.vhs&&!F.film&&!F.rgb&&!F.tilt&&!lutTex)return;
  const W=cv.width,H=cv.height;
  if(F.glow>0){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H);
   fxCtx.filter=`blur(${Math.max(2,Math.round(14*F.glow))}px)`; fxCtx.drawImage(cv,0,0); fxCtx.filter="none";
@@ -558,6 +572,39 @@ function applyPostFX(){
  if(F.st>0){ const hx=(hex,a)=>{const n=parseInt((hex||"#000000").slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
   ctx.save(); ctx.globalCompositeOperation="overlay"; ctx.fillStyle=hx(F.stSh,0.55*F.st); ctx.fillRect(0,0,W,H);
   ctx.globalCompositeOperation="soft-light"; ctx.fillStyle=hx(F.stHi,0.85*F.st); ctx.fillRect(0,0,W,H); ctx.restore() }
+ if(F.rgb>0){ const d=Math.max(2,Math.round(W*0.007*F.rgb));
+  const mkC=()=>document.createElement("canvas");
+  const srcC=applyPostFX._src||(applyPostFX._src=mkC()), rC=applyPostFX._r||(applyPostFX._r=mkC()), gC2=applyPostFX._g||(applyPostFX._g=mkC()), bC=applyPostFX._b||(applyPostFX._b=mkC());
+  const hw=Math.max(2,W>>1), hh=Math.max(2,H>>1);
+  [srcC,rC,gC2,bC].forEach(c=>{ if(c.width!==hw){c.width=hw;c.height=hh} });
+  const sx2=srcC.getContext("2d"); sx2.clearRect(0,0,hw,hh); sx2.drawImage(cv,0,0,hw,hh);
+  const chan=(dst,tint)=>{ const x=dst.getContext("2d"); x.clearRect(0,0,hw,hh); x.drawImage(srcC,0,0); x.globalCompositeOperation="multiply"; x.fillStyle=tint; x.fillRect(0,0,hw,hh); x.globalCompositeOperation="source-over" };
+  chan(rC,"#ff0000"); chan(gC2,"#00ff00"); chan(bC,"#0000ff");
+  ctx.save(); ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation="lighter";
+  ctx.drawImage(rC,-d,0,W,H); ctx.drawImage(gC2,0,0,W,H); ctx.drawImage(bC,d,0,W,H); ctx.restore() }
+ if(F.tilt>0){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H);
+  fxCtx.filter=`blur(${Math.max(3,Math.round(W*0.009))}px)`; fxCtx.drawImage(cv,0,0); fxCtx.filter="none";
+  const grT=fxCtx.createLinearGradient(0,0,0,H);
+  grT.addColorStop(0,"rgba(0,0,0,0)"); grT.addColorStop(0.30,"rgba(0,0,0,1)"); grT.addColorStop(0.70,"rgba(0,0,0,1)"); grT.addColorStop(1,"rgba(0,0,0,0)");
+  fxCtx.globalCompositeOperation="destination-out"; fxCtx.fillStyle=grT; fxCtx.fillRect(0,0,W,H); fxCtx.globalCompositeOperation="source-over";
+  ctx.save(); ctx.globalAlpha=F.tilt; ctx.drawImage(fxCvs,0,0); ctx.restore() }
+ if(F.vhs>0){ const t=performance.now()/1000;
+  ctx.save(); ctx.globalAlpha=0.15*F.vhs; ctx.fillStyle="#000";
+  for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,1.6);
+  ctx.restore();
+  const by=((t*46)%(H+120))-60;
+  const gr2=ctx.createLinearGradient(0,by-24,0,by+24); gr2.addColorStop(0,"rgba(255,255,255,0)"); gr2.addColorStop(0.5,`rgba(255,255,255,${(0.10*F.vhs).toFixed(3)})`); gr2.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.save(); ctx.fillStyle=gr2; ctx.fillRect(0,by-24,W,48); ctx.restore() }
+ if(F.film>0){ const t=performance.now()/1000, step=Math.floor(t*9);
+  let sd=step*7919+13; const rnd=()=>{ sd=(sd*16807)%2147483647; return sd/2147483647 };
+  ctx.save(); ctx.globalCompositeOperation="overlay"; ctx.fillStyle=`rgba(146,102,32,${(0.30*F.film).toFixed(3)})`; ctx.fillRect(0,0,W,H); ctx.restore();
+  ctx.save(); ctx.globalAlpha=0.5*F.film; ctx.fillStyle="rgba(255,246,220,0.5)";
+  const nScr=2+Math.floor(rnd()*2);
+  for(let i=0;i<nScr;i++){ const x=rnd()*W; ctx.fillRect(x,0,1.1,H) }
+  ctx.fillStyle="rgba(20,16,8,0.55)";
+  for(let i=0;i<14;i++){ ctx.fillRect(rnd()*W,rnd()*H,1.6,1.6) }
+  ctx.restore();
+  const fl=0.028*Math.sin(t*43)*F.film; if(fl>0){ ctx.save(); ctx.fillStyle=`rgba(255,240,200,${fl.toFixed(3)})`; ctx.fillRect(0,0,W,H); ctx.restore() } }
  if(F.vig>0){ const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.8);
   g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,`rgba(0,0,0,${(0.62*F.vig).toFixed(3)})`);
   ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
@@ -929,7 +976,14 @@ function finishExportBlob(){
 }
 
 /* ---------- v2: templates, transitions, stickers, demo ---------- */
-$("#transSel").onchange=e=>{curTransition=e.target.value;drawFrame()};
+$("#transSel").onchange=e=>{curTransition=e.target.value;drawFrame();syncTransChips()};
+function syncTransChips(){ const box=$("#transChips"); if(!box)return;
+ box.querySelectorAll("[data-tr]").forEach(b=>{ const on=b.dataset.tr===curTransition;
+  b.style.background=on?"var(--gold)":""; b.style.color=on?"#171106":"" }) }
+{ const box=$("#transChips");
+ if(box){ [...$("#transSel").options].forEach(o=>{ const b=document.createElement("button");
+   b.dataset.tr=o.value; b.textContent=o.textContent.replace(" (pro)",""); b.style.cssText="flex:1 1 30%;min-height:40px;font-size:12.5px";
+   b.onclick=()=>{ setSelect("#transSel",o.value) }; box.appendChild(b) }); syncTransChips() } }
 function setSelect(id,val){const el=$(id);el.value=val;el.dispatchEvent(new Event("change"))}
 function setPreset(name){presetBox.querySelectorAll(".preset").forEach(b=>{if(b.textContent===name)b.click()})}
 const FONTS={anton:"Anton,Arial,sans-serif",bebas:"'Bebas Neue',Arial,sans-serif",pacifico:"Pacifico,cursive",orbitron:"Orbitron,monospace",rubik:"Rubik,Arial,sans-serif",cairo:"Cairo,Arial,sans-serif",amiri:"Amiri,serif"};
@@ -1892,7 +1946,7 @@ function snapshotState(){return JSON.stringify({segments,texts,overlays,blurs,se
  adj:[$("#adjB").value,$("#adjC").value,$("#adjS").value],
  pc:[pcCol.temp,pcCol.tint,pcCol.vib,pcCol.fade],
  m2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
- fx:[postfx.vig,postfx.grain,postfx.glow,postfx.leak,postfx.glitch?1:0,postfx.st||0,postfx.stSh||"#20306e",postfx.stHi||"#ffb36b"],duck:duckOn?1:0})}
+ fx:[postfx.vig,postfx.grain,postfx.glow,postfx.leak,postfx.glitch?1:0,postfx.st||0,postfx.stSh||"#20306e",postfx.stHi||"#ffb36b",postfx.vhs||0,postfx.film||0,postfx.rgb||0,postfx.tilt||0],duck:duckOn?1:0})}
 function pushHistory(){
  if(histLock)return;
  const s=snapshotState();
@@ -1915,10 +1969,11 @@ function applySnapshot(s){
   if(o.adj){["#adjB","#adjC","#adjS"].forEach((id,i)=>{$(id).value=o.adj[i]});["#adjBO","#adjCO","#adjSO"].forEach((id,i)=>{$(id).textContent=o.adj[i]})}
   if(o.pc){pcCol={temp:o.pc[0],tint:o.pc[1],vib:o.pc[2],fade:o.pc[3]};["#pcTemp","#pcTint","#pcVib","#pcFade"].forEach((id,i)=>{$(id).value=o.pc[i];$(id+"O").textContent=o.pc[i]})}
   if(o.m2){$("#music2Sel").value=o.m2.sel||"";$("#music2Sel").dispatchEvent(new Event("change"));$("#music2Vol").value=o.m2.vol!=null?o.m2.vol:80;$("#music2VolO").textContent=$("#music2Vol").value;$("#music2Off").value=o.m2.off||0}
-  if(o.fx){postfx={vig:o.fx[0],grain:o.fx[1],glow:o.fx[2],leak:o.fx[3],glitch:!!o.fx[4],st:o.fx[5]||0,stSh:o.fx[6]||"#20306e",stHi:o.fx[7]||"#ffb36b"};
+  if(o.fx){postfx={vig:o.fx[0],grain:o.fx[1],glow:o.fx[2],leak:o.fx[3],glitch:!!o.fx[4],st:o.fx[5]||0,stSh:o.fx[6]||"#20306e",stHi:o.fx[7]||"#ffb36b",vhs:o.fx[8]||0,film:o.fx[9]||0,rgb:o.fx[10]||0,tilt:o.fx[11]||0};
    ["#fxVig","#fxGrain","#fxGlow","#fxLeak"].forEach((id,i)=>{$(id).value=Math.round(o.fx[i]*100);$(id+"O").textContent=Math.round(o.fx[i]*100)});
    const stEl=$("#fxSt"); if(stEl){stEl.value=Math.round(postfx.st*100); $("#fxStO").textContent=Math.round(postfx.st*100)}
    const shEl=$("#fxStSh"); if(shEl)shEl.value=postfx.stSh; const hiEl=$("#fxStHi"); if(hiEl)hiEl.value=postfx.stHi;
+   if(typeof syncFxLookBtns==="function")syncFxLookBtns();
    $("#fxGlitch").textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF"}
   if(o.duck!=null){duckOn=!!o.duck;const db=$("#duckBtn");if(db)db.textContent=duckOn?"🦆 Auto-duck music under speech: ON":"🦆 Auto-duck music under speech: OFF"}
   stopPlayback(); curSeg=-1;
