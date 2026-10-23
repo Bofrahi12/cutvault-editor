@@ -28,6 +28,7 @@ let filterIntensity=1;
 let pcCol={temp:0,tint:0,vib:0,fade:0};
 let tlZoom=1;
 let curTransition="none", letterbox=false;
+var curLang="en";
 const fmt=t=>{t=Math.max(0,t||0);const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(1)};
 const segDur=s=>{const m=media.get(s.mediaId);if(!m)return 0;return m.type==="image"?s.dur:(s.out-s.in)/(s.speed||1)};
 const progDur=()=>segments.reduce((a,s)=>a+segDur(s),0);
@@ -198,6 +199,7 @@ function renderSegPanel(){
  if(R)R.onclick=()=>{if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];renderTimeline();pushHistory()}};
  wireTF(s); wireSmart(s,p); wireClipFx(s,p); wireReplace(s,p); wireExtract(s,p);
  organizePanel(p);
+ if(curLang==="ar")translateDOM(p);
 }
 function makeCollapsible(box, open){
  const head=box.querySelector(":scope > .sub"); if(!head||head.dataset.acc)return;
@@ -244,7 +246,7 @@ $("#splitBtn").onclick=()=>{
 };
 $("#dupBtn").onclick=()=>{const s=segments.find(x=>x.id===selSeg);if(!s)return;const c={...s,id:"s"+(++segSeq)};segments.splice(segments.indexOf(s)+1,0,c);selSeg=c.id;renderTimeline();pushHistory()};
 $("#delSegBtn").onclick=()=>{const i=segments.findIndex(x=>x.id===selSeg);if(i<0)return;segments.splice(i,1);selSeg=segments[Math.max(0,i-1)]?.id||null;stopPlayback();renderTimeline();pushHistory()};
-function flashNow(t){$("#nowPlaying").textContent=t}
+function flashNow(t){$("#nowPlaying").textContent=tr(t)}
 
 /* ---------- filters & settings ---------- */
 const presetBox=$("#presets");
@@ -352,6 +354,7 @@ function renderTextList(){
   const tbn=d.querySelector(".tbDn"); if(tbn)tbn.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>0){texts.splice(i,1);texts.splice(i-1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
   box.appendChild(d)});
  renderCapEdit();
+ if(curLang==="ar")translateDOM($("#sheet-text"));
 }
 
 /* ---------- playback engine ---------- */
@@ -1496,9 +1499,132 @@ document.addEventListener("keydown",e=>{
  else if(e.code==="Delete"||e.code==="Backspace"){const b=$("#spDel"); if(b&&selSeg){e.preventDefault();b.click()}}
 });
 /* ----- Interface language (EN / FR / AR / ES) ----- */
+/* ----- Full Arabic layer (Phase U): dictionary translator for generated UI ----- */
+const AR_STR={
+"Done ✓":"تم ✓","Save":"حفظ","Load":"تحميل","Slot 1 — empty":"الخانة 1 — فارغة","Slot 2 — empty":"الخانة 2 — فارغة","Slot 3 — empty":"الخانة 3 — فارغة",
+"📋 Copy clip style":"📋 نسخ ستايل المقطع","📥 Paste style":"📥 لصق الستايل","⬇ Export project file":"⬇ تصدير ملف المشروع","⬆ Import project file":"⬆ استيراد ملف المشروع",
+"＋ Add text at playhead":"＋ زيد نص عند المؤشر","🎙 Add lines as timed captions":"🎙 زيد الأسطر كترجمات موقوتة","🤖 Generate captions for selected clip":"🤖 ولّد الترجمات للمقطع المختار",
+"⬇ Export subtitles (.srt)":"⬇ تصدير الترجمات (.srt)","⬆ Import .srt":"⬆ استيراد .srt","⏺ Record":"⏺ تسجيل","⏹ Stop":"⏹ وقف",
+"🥁 Detect beats in Track 1 music":"🥁 كشف الإيقاع في موسيقى المسار 1","✂ Split selected clip at the beats":"✂ قصّ المقطع المختار عند الإيقاعات",
+"🦆 Auto-duck music under speech: OFF":"🦆 خفض الموسيقى تحت الكلام تلقائياً: طافئ","🦆 Auto-duck music under speech: ON":"🦆 خفض الموسيقى تحت الكلام تلقائياً: خدام",
+"Beat snap: OFF":"القصّ على الإيقاع: طافئ","Beat snap: ON":"القصّ على الإيقاع: خدام",
+"📺 Glitch bursts: OFF":"📺 ومضات غليتش: طافئة","📺 Glitch bursts: ON":"📺 ومضات غليتش: خدامة",
+"📼 VHS tape: OFF":"📼 شريط VHS: طافئ","📼 VHS tape: ON":"📼 شريط VHS: خدام","🎞 Old film: OFF":"🎞 فيلم قديم: طافئ","🎞 Old film: ON":"🎞 فيلم قديم: خدام",
+"🌈 RGB split: OFF":"🌈 فصل RGB: طافئ","🌈 RGB split: ON":"🌈 فصل RGB: خدام","🔭 Tilt-shift: OFF":"🔭 تيلت-شيفت: طافئ","🔭 Tilt-shift: ON":"🔭 تيلت-شيفت: خدام",
+"Teal & Orange":"البرتقالي والأخضر المائي","Noir Contrast":"تباين نوار","⬆ Import .cube":"⬆ استيراد .cube","Clear":"مسح","No LUT active":"لا يوجد LUT خدام",
+"▶ YouTube 16:9 HD":"▶ يوتيوب 16:9 HD","📱 Shorts / Reels 9:16":"📱 شورتس / ريلز 9:16","⬛ Square 1:1":"⬛ مربع 1:1",
+"🌃 Neon City":"🌃 مدينة النيون","🌊 Ocean Air":"🌊 هواء المحيط","🏎 Lux Car":"🏎 سيارة فاخرة",
+"💨 Whoosh":"💨 ووش","🫧 Pop":"🫧 بوب","🔔 Ding":"🔔 دينغ","📈 Riser":"📈 رايزر","💥 Impact":"💥 إمباكت","🖱 Click":"🖱 كليك","✨ Sparkle":"✨ بريق","🔊 Bass drop":"🔊 باس دروب",
+"Background music (add an audio file in Media)":"موسيقى الخلفية (زيد ملف صوتي في الوسائط)","Music vol":"صوت الموسيقى","Video vol":"صوت الفيديو","Music fades":"تلاشي الموسيقى",
+"Fade in (seconds)":"الظهور التدريجي (ثواني)","Fade out (seconds)":"الاختفاء التدريجي (ثواني)","Music starts at (s)":"الموسيقى كتبدا عند (ث)",
+"Second audio track":"المسار الصوتي الثاني","Track 2 (voiceover, ambience, SFX…)":"المسار 2 (تعليق صوتي، أجواء، مؤثرات…)","Track 2 vol":"صوت المسار 2","Track 2 starts at (seconds into the video)":"المسار 2 كيبدا عند (ثواني داخل الفيديو)",
+"Style":"الستايل","Length":"المدة","New text":"نص جديد","Stickers — tap to add":"الملصقات — قلب باش تزيد","Speech language":"لغة الكلام","Theme":"الموضوع","AI provider":"مزود الذكاء الاصطناعي",
+"Ratio":"الأبعاد","Fit":"الملاءمة","Export size":"حجم التصدير","File name":"اسم الملف","Frame rate":"معدل الإطارات","Shadows":"الظلال","Highlights":"الإضاءات",
+"LUT strength":"قوة LUT","Intensity":"القوة","Brightness":"الإضاءة","Contrast":"التباين","Saturation":"التشبع","Temperature":"الحرارة","Tint":"الصبغة","Vibrance":"الحيوية","Faded blacks":"سواد باهت",
+"Vignette":"تظليل الحواف","Film grain":"حبيبات الفيلم","Glow":"التوهج","Light leak":"تسرب الضوء","Split tone":"النغمة المنقسمة",
+"None":"لا شيء","Crossfade (dissolve)":"ذوبان متقاطع","Dip to black":"غوص للأسود","Fade in":"ظهور تدريجي","Flash":"وميض","Zoom punch":"لكمة زوم","Slide in":"انزلاق","Wipe":"مسح",
+"Circle open":"فتحة دائرية","Spin in":"دوران","Blur fade":"ذوبان ضبابي","Glitch shake":"اهتزاز غليتش","Slide up":"انزلاق للأعلى","Zoom out settle":"زوم للخارج","Flip in":"قلب","Bounce in":"ارتداد",
+"Whip pan (pro)":"سوط (احترافي)","Zoom blur (pro)":"زوم ضبابي (احترافي)","Barn doors (pro)":"أبواب الحظيرة (احترافي)","Venetian blinds (pro)":"ستائر فينيسية (احترافي)",
+"Clock wipe (pro)":"مسح الساعة (احترافي)","Checkerboard (pro)":"رقعة الشطرنج (احترافي)","Page roll (pro)":"لفّة الصفحة (احترافي)","Glitch cut (pro)":"قطع غليتش (احترافي)",
+"16:9 · YouTube":"16:9 · يوتيوب","9:16 · Reels / TikTok":"9:16 · ريلز / تيك توك","1:1 · Square":"1:1 · مربع","4:5 · Feed":"4:5 · منشور",
+"Fit + blurred background":"ملاءمة + خلفية ضبابية","Fill (crop to frame)":"ملء (قصّ على الإطار)","Fit + black background":"ملاءمة + خلفية سوداء",
+"Standard (720-wide · faster)":"عادي (عرض 720 · أسرع)","HD (1080-wide · sharper, slower)":"HD (عرض 1080 · أوضح، أبطأ)","QHD (1440-wide · much slower)":"QHD (عرض 1440 · أبطأ بكثير)","4K (2160-wide · desktop recommended)":"4K (عرض 2160 · يُنصح بالحاسوب)",
+"30 fps (standard)":"30 إطار (عادي)","60 fps (smoother motion)":"60 إطار (حركة أنعم)",
+"🎧 Lo-Fi Chill":"🎧 لو-فاي هادئ","💀 Phonk Drift":"💀 فونك دريفت","🎬 Epic Cinematic":"🎬 ملحمي سينمائي","🎉 Upbeat House":"🎉 هاوس حيوي","🪘 Arabic Groove":"🪘 إيقاع عربي",
+"Short (~15–25s)":"قصير (~15-25 ث)","Full (~30–50s)":"كامل (~30-50 ث)",
+"🎬 Cinematic":"🎬 سينمائي","🌃 Neon":"🌃 نيون","🏷 Sale Promo":"🏷 عرض تخفيض","✈️ Travel":"✈️ سفر","📱 Vlog":"📱 فلوغ",
+"Auto-detect":"كشف تلقائي","English":"الإنجليزية","Arabic · العربية":"العربية","French":"الفرنسية","Spanish":"الإسبانية","— none —":"— لا شيء —",
+"HuggingFace — free token":"HuggingFace — رمز مجاني","Google Gemini Veo — your API key":"Google Gemini Veo — مفتاح API ديالك",
+"Animation":"الحركة","At %":"عند %","Backdrop behind the person":"الخلفية وراء الشخص","Backdrop color":"لون الخلفية","Color":"اللون","Duration (s)":"المدة (ث)",
+"Edge softness":"نعومة الحواف","End (s)":"النهاية (ث)","End opacity":"شفافية النهاية","End rotation":"دوران النهاية","End zoom":"زوم النهاية",
+"Font":"الخط","Gold border":"إطار ذهبي","Height":"الارتفاع","Key color (tap the backdrop color)":"لون المفتاح (قلب على لون الخلفية)",
+"Look for this clip only":"Look لهاد المقطع بوحدو","Mask shape":"شكل القناع","Mid opacity":"شفافية الوسط","Mid zoom":"زوم الوسط","Mode":"الوضع",
+"Opacity":"الشفافية","Outline width":"عرض حدود النص","Photo duration (seconds)":"مدة الصورة (ثواني)","Similarity":"التشابه","Size":"الحجم",
+"Soft edge (feather)":"حافة ناعمة (ريشة)","Speed":"السرعة","Speed ramp (curve)":"منحنى السرعة","Start (s)":"البداية (ث)","Text":"النص",
+"Trim end":"نهاية القصّ","Trim start":"بداية القصّ","Volume":"الصوت","Width":"العرض","Zoom":"الزوم",
+"Position ↔":"الموضع ↔","Position ↕":"الموضع ↕","Move ↔":"التحريك ↔","Move ↕":"التحريك ↕","End ↔":"النهاية ↔","End ↕":"النهاية ↕","Mid ↔":"الوسط ↔","↔ Position %":"↔ الموضع %","↕ Position %":"↕ الموضع %",
+"Swap the footage, keep trims / speed / effects":"بدّل اللقطة وخلي القصّ / السرعة / المؤثرات","Smart tools — background":"أدوات ذكية — الخلفية","Transform":"التحويل",
+"✂ Cut & sound":"✂ القصّ والصوت","🎞 Keyframe animation":"🎞 حركة الإطارات المفتاحية","◆ Middle keyframe":"◆ إطار مفتاحي وسط",
+"🎵 Extract audio":"🎵 استخراج الصوت","🔁 Replace clip media":"🔁 تبديل وسائط المقطع","Delete text":"حذف النص","Disable":"تعطيل",
+"Move →":"نقل →","← Move":"← نقل","Pan right ➡":"إزاحة لليمين ➡","⬅ Pan left":"⬅ إزاحة لليسار","Remove middle keyframe":"حذف الإطار الوسط",
+"↑ Bring front":"↑ قدّم للأمام","↓ Send back":"↓ رجّع للخلف","↩ Reset to global color":"↩ رجوع للون العام","⎘ Duplicate":"⎘ تكرار","✂ Cut line":"✂ قصّ السطر",
+"⬇ Download GIF":"⬇ تحميل GIF","⬇ Download MP4":"⬇ تحميل MP4","⬇ Download WebM":"⬇ تحميل WebM","🎬 Convert to MP4":"🎬 تحويل لـMP4",
+"🎵 Extract this clip's audio as a music file":"🎵 استخراج صوت هاد المقطع كملف موسيقى","🔍 Zoom in":"🔍 تكبير","🔎 Zoom out":"🔎 تصغير","🖼 GIF":"🖼 GIF",
+"🗑 Delete overlay":"🗑 حذف التراكب","🗑 Delete region":"🗑 حذف المنطقة","＋ Add middle keyframe (peak in the middle)":"＋ زيد إطار مفتاحي وسط (ذروة في الوسط)",
+"＋ Animate this clip (zoom / pan over time)":"＋ حرّك هاد المقطع (زوم / إزاحة مع الوقت)","🟢 Chroma key":"🟢 مفتاح الكروما","🤖 AI cutout":"🤖 قصّ بالذكاء الاصطناعي",
+"↔ Flip":"↔ قلب","🎯 Track person — camera follows them":"🎯 تتبع الشخص — الكاميرا كتتبعو","Sound on 🔊":"الصوت خدام 🔊",
+"None — constant speed":"لا شيء — سرعة ثابتة","Ramp up · slow → fast":"تصاعد · بطيء ← سريع","Ramp down · fast → slow":"تنازل · سريع ← بطيء",
+"Hero moment · fast → slow-mo → fast":"لحظة البطل · سريع ← بطيء ← سريع","Smooth slow motion":"حركة بطيئة ناعمة","✏️ Custom curve — draw your own (VN-style)":"✏️ منحنى خاص — رسمو بنفسك (بأسلوب VN)",
+"Drag the 5 dots: the line is the speed across the clip (top = 3× fast, bottom = 0.2× slow-mo). This is your own speed curve — honored in playback and both exports.":"جرّ النقاط الخمسة: الخط هو السرعة عبر المقطع (الأعلى = 3× سريع، الأسفل = 0.2× بطيء). هذا منحنى السرعة ديالك — كيتحترم في التشغيل والتصديرين بجوج.",
+"Feather softens circle / round masks (VN-style). 0 = hard edge.":"الريشة كتنعّم أقنعة الدائرة / المدوّرة (بأسلوب VN). 0 = حافة صلبة.",
+"Select a clip first":"اختار مقطع أولاً","Speed curve set 🌀 — press ▶":"تضبط منحنى السرعة 🌀 — ضغط ▶","Draw your speed curve ✏️":"رسم منحنى السرعة ديالك ✏️",
+"Speed ramp off":"توقف منحنى السرعة","Effect look on 🎬":"تفعّلت إطلالة المؤثر 🎬","Effect look off":"توقفت إطلالة المؤثر",
+"Auto-reframe removed":"تحذفت إعادة التأطير","Reframe works on video clips":"إعادة التأطير كتخدم على مقاطع الفيديو",
+"📐 Reframing — the AI is finding the person…":"📐 كنعاود التأطير — الذكاء الاصطناعي كيقلب على الشخص…",
+"Auto-reframe on 📐 — canvas is 9:16 and the crop follows the person":"إعادة التأطير خدامة 📐 — اللوحة 9:16 والقصّ كيتبع الشخص",
+"No clear person found in this clip — auto-reframe needs a visible person":"ما تلقى حتى شخص واضح في هاد المقطع — إعادة التأطير خاصها شخص باين",
+"Cut ✂ — the timeline rippled closed":"تقطع ✂ — والخط الزمني تسدّ","That line covers the whole video — nothing to ripple":"هاد السطر كيغطي الفيديو كامل — ما كاين ما يتسدّ",
+"AI song generated ✓ — it's in your music library":"تولدت الأغنية ✓ — راهي في مكتبة الموسيقى ديالك","Sound effect added to your library ✓":"تزاد المؤثر الصوتي لمكتبتك ✓",
+"Audio extracted ✓ — find it in the Audio tracks":"تستخرج الصوت ✓ — لقايه في مسارات الصوت","Clip media replaced ✓ (trims kept)":"تبدلات وسائط المقطع ✓ (القصّ بقى)",
+"Extract failed on this file":"فشل الاستخراج على هاد الملف","📤 Share video":"📤 شارك الفيديو","＋ PiP":"＋ PiP",
+"No caption lines yet — run Auto-captions first.":"لا توجد أسطر ترجمة بعد — شغّل الترجمات التلقائية أولاً."};
+function tr(s){ if(curLang!=="ar"||typeof s!=="string")return s; const t=s.trim(); return AR_STR[t]||s }
+function translateDOM(root){ if(!root||!root.querySelectorAll||curLang!=="ar")return;
+ root.querySelectorAll("button,.sub,.hint,label,.slider-row>span,.acc-head").forEach(el=>{
+  if(el.hasAttribute("data-i18n"))return;
+  if(el.children.length)return;
+  if(el.closest(".seg")||el.closest("#tlTexts"))return;
+  if(el.closest("#capEditList")&&el.tagName!=="BUTTON")return;
+  const raw=el.textContent, t=raw.trim(); if(!t)return;
+  if(el.dataset.en2==null)el.dataset.en2=raw;
+  if(AR_STR[t])el.textContent=AR_STR[t] }) }
+function restoreDOM(root){ if(!root||!root.querySelectorAll)return;
+ root.querySelectorAll("[data-en2]").forEach(el=>{ el.textContent=el.dataset.en2 }) }
+function applyLangDeep(l){ curLang=l;
+ document.querySelectorAll("option").forEach(o=>{ if(o.dataset.en==null)o.dataset.en=o.textContent;
+  const t=o.dataset.en.trim();
+  o.textContent=(l==="ar"&&AR_STR[t])?AR_STR[t]:o.dataset.en });
+ const tc=$("#transChips");
+ if(tc){ const map={}; [...$("#transSel").options].forEach(o=>map[o.value]=o.textContent);
+  tc.querySelectorAll("[data-tr]").forEach(b=>{ if(map[b.dataset.tr])b.textContent=map[b.dataset.tr].replace(/\s*\((pro|احترافي)\)$/,"") }) }
+ if(l==="ar")translateDOM(document); else restoreDOM(document) }
 const I18N={
 fr:{t_media:"Médias",t_edit:"Modifier",t_audio:"Audio",t_text:"Texte",t_effects:"Effets",t_ratio:"Format",t_templates:"Modèles",s_media:"➕ Médias",s_edit:"✂️ Modifier le clip",s_audio:"🎵 Audio",s_text:"T Texte & autocollants",s_effects:"✨ Effets & filtres",s_ratio:"▣ Format de la toile",s_templates:"⧉ Modèles",export:"⬇ Exporter",hc_title:"🎬 Que veux-tu créer ?",hc_add:"➕ Ajouter ma vidéo ou photo",hc_auto:"🤖 Crée une vidéo pour moi",hc_demo:"▶ Essayer le projet démo",hc_note:"Sans inscription · tes fichiers ne quittent jamais cet appareil",qb_split:"✂ Diviser",qb_dup:"⧉ Dupliquer",qb_speed:"🐢 Vitesse",qb_color:"🎨 Couleur",qb_del:"🗑 Supprimer",btn_freeze:"❄ Figer l'image",btn_reverse:"⏪ Inverser le clip",demo_btn:"▶ Charger le projet démo (clip + musique + modèle)",sub_projects:"💾 Projets sur cet appareil",sub_stock:"🎁 Pack média intégré (à nous — libre d'utilisation)",sub_auto:"🎬 Créateur vidéo auto",sub_aivideo:"🤖 Vidéo IA depuis un texte (cloud · bêta)",btn_build:"🎬 Créer ma vidéo",btn_gen_clip:"🤖 Générer le clip",sub_music:"🎵 Créateur de musique IA — compose sur ton appareil",btn_gen_song:"🎵 Générer ma chanson",sub_vo:"🎙 Voix off — enregistre ta voix",sub_beats:"🥁 Synchro au rythme",sub_looks:"Looks — combos pro en un toucher",sub_postfx:"Post FX — vidéo entière",sub_procolor:"Couleur Pro — tons séparés (style Lumetri)",sub_intensity:"Intensité du filtre",sub_trans:"Transition entre clips"},
-ar:{t_media:"الوسائط",t_edit:"تحرير",t_audio:"الصوت",t_text:"النص",t_effects:"المؤثرات",t_ratio:"الأبعاد",t_templates:"القوالب",s_media:"➕ الوسائط",s_edit:"✂️ تحرير المقطع",s_audio:"🎵 الصوت",s_text:"T النص والملصقات",s_effects:"✨ المؤثرات والفلاتر",s_ratio:"▣ أبعاد اللوحة",s_templates:"⧉ القوالب",export:"⬇ تصدير",hc_title:"🎬 شنو بغيتي تصاوب؟",hc_add:"➕ زيد الفيديو أو الصورة ديالك",hc_auto:"🤖 صاوب ليا فيديو بوحدك",hc_demo:"▶ جرّب مشروع الديمو",hc_note:"بلا تسجيل · ملفاتك ما كتخرجش من هاد الجهاز",qb_split:"✂ قصّ",qb_dup:"⧉ كرر",qb_speed:"🐢 السرعة",qb_color:"🎨 اللون",qb_del:"🗑 حذف",btn_freeze:"❄ تجميد الإطار",btn_reverse:"⏪ عكس المقطع",demo_btn:"▶ حمّل مشروع الديمو (مقطع + موسيقى + قالب)",sub_projects:"💾 المشاريع في هاد الجهاز",sub_stock:"🎁 حزمة وسائط مدمجة (ديالنا — مجانية للاستعمال)",sub_auto:"🎬 صانع الفيديو التلقائي",sub_aivideo:"🤖 فيديو بالذكاء الاصطناعي من نص (سحابة · تجريبي)",btn_build:"🎬 صاوب الفيديو ديالي",btn_gen_clip:"🤖 ولّد المقطع",sub_music:"🎵 صانع الموسيقى بالذكاء الاصطناعي — كيألف على جهازك",btn_gen_song:"🎵 ولّد الأغنية ديالي",sub_vo:"🎙 التعليق الصوتي — سجّل صوتك",sub_beats:"🥁 مزامنة الإيقاع",sub_looks:"Looks — تركيبات برو بلمسة وحدة",sub_postfx:"Post FX — الفيديو كامل",sub_procolor:"اللون الاحترافي — Split tone (بأسلوب Lumetri)",sub_intensity:"قوة الفلتر",sub_trans:"الانتقال بين المقاطع"},
+ar:{t_media:"الوسائط",t_edit:"تحرير",t_audio:"الصوت",t_text:"النص",t_effects:"المؤثرات",t_ratio:"الأبعاد",t_templates:"القوالب",s_media:"➕ الوسائط",s_edit:"✂️ تحرير المقطع",s_audio:"🎵 الصوت",s_text:"T النص والملصقات",s_effects:"✨ المؤثرات والفلاتر",s_ratio:"▣ أبعاد اللوحة",s_templates:"⧉ القوالب",export:"⬇ تصدير",hc_title:"🎬 شنو بغيتي تصاوب؟",hc_add:"➕ زيد الفيديو أو الصورة ديالك",hc_auto:"🤖 صاوب ليا فيديو بوحدك",hc_demo:"▶ جرّب مشروع الديمو",hc_note:"بلا تسجيل · ملفاتك ما كتخرجش من هاد الجهاز",qb_split:"✂ قصّ",qb_dup:"⧉ كرر",qb_speed:"🐢 السرعة",qb_color:"🎨 اللون",qb_del:"🗑 حذف",btn_freeze:"❄ تجميد الإطار",btn_reverse:"⏪ عكس المقطع",demo_btn:"▶ حمّل مشروع الديمو (مقطع + موسيقى + قالب)",sub_projects:"💾 المشاريع في هاد الجهاز",sub_stock:"🎁 حزمة وسائط مدمجة (ديالنا — مجانية للاستعمال)",sub_auto:"🎬 صانع الفيديو التلقائي",sub_aivideo:"🤖 فيديو بالذكاء الاصطناعي من نص (سحابة · تجريبي)",btn_build:"🎬 صاوب الفيديو ديالي",btn_gen_clip:"🤖 ولّد المقطع",sub_music:"🎵 صانع الموسيقى بالذكاء الاصطناعي — كيألف على جهازك",btn_gen_song:"🎵 ولّد الأغنية ديالي",sub_vo:"🎙 التعليق الصوتي — سجّل صوتك",sub_beats:"🥁 مزامنة الإيقاع",sub_looks:"Looks — تركيبات برو بلمسة وحدة",sub_postfx:"Post FX — الفيديو كامل",sub_procolor:"اللون الاحترافي — Split tone (بأسلوب Lumetri)",sub_intensity:"قوة الفلتر",sub_trans:"الانتقال بين المقاطع",
+tagline:"محرر فيديو ويب مجاني · من CineVault",install:"📲 تثبيت التطبيق",fastbtn:"⚡ تصدير سريع — MP4 مباشرة (تجريبي)",
+fasthint:"التصدير السريع كيرندر إطار بإطار بـWebCodecs بدل التسجيل في الوقت الحقيقي — أسرع بمرات على التيليفونات اللي عندها فك ترميز عتادي، والـMP4 كيوجد مباشرة (بلا خطوة تحويل). خاصو Chrome/Edge. وإذا وقع أي مشكل، التصدير العادي الفوق ما تمسش.",
+restore_txt:"💾 تلقى مشروع محفوظ في هاد الجهاز.",restore_btn:"استرجعو",discard_btn:"تجاهل",
+now_playing:"قلب على «الوسائط +» لتحت، ولا افتح القوالب ← الديمو",tl_label:"الخط الزمني — جرّ المقاطع باش تعاود ترتيبها",tl_empty:"المقاطع ديالك غادي يبانو هنا…",ov_label:"التراكب · صورة داخل صورة",
+exp_hint:"خلي هاد التبويب مفتوح — التصدير كيخدم في الوقت الحقيقي.",drop_txt:"＋ قلب باش تزيد فيديوهات وصور وموسيقى",nofiles_sub:"ما عندك حتى ملف في يدك؟",
+stock_hint:"صور أصلية من CineVault — قلب باش تزيد وحدة للخط الزمني ديالك. وزيد مقطع الديمو وفراش الموسيقى الفوق.",
+auto_hint:"كيبني فيديو 9:16 كامل تلقائياً — مشاهد، زوم متحرك، العنوان ديالك، والموسيقى. كيبدّل الخط الزمني الحالي (تقدر ترجع).",
+aistate:"الفيديو من النص بالصح خاصو GPU سحابية، فهادا كيستعمل الرمز المجاني ديالك من huggingface.co (الإعدادات ← رموز الوصول ← قراءة). المقطع كيتولد تماك وكيزيد للخط الزمني ديالك. الرمز ديالك ما كيخرجش من هاد المتصفح إلا لـHuggingFace.",
+proj_hint:"المشروع الحالي كيتحفظ تلقائياً وانت كتعدّل. تحميل خانة كيبدّل المحرر — حفظ خدمتك أولاً إذا كانت مهمة.",
+projfile_sub:"ملف المشروع (نقلو لجهاز آخر)",projfile_hint:"الملف كيهز التعديل (المقاطع، النصوص، المؤثرات) — ماشي الوسائط نفسها. في الجهاز الآخر، استورد الملف، وزيد نفس ملفات الوسائط ملي يطلب منك؛ CutVault كيربطهم بالاسم.",
+privacy_hint:"كلشي كيبقى في جهازك — حتى حاجة ما كتترفع.",playhead_sub:"إجراءات المؤشر",
+attrs_hint:"انسخ لون مقطع ومؤثراتو والزوم والحركة وإعدادات الصوت — ولصقهم على أي مقطع آخر. (بأسلوب Premiere في لصق الخصائص.)",
+freeze_hint:"التجميد: وقف التشغيل على الإطار اللي بغيتي، وضغط تجميد. العكس كيصاوب نسخة معكوسة من المقطع المختار (على الجهاز، 60 ثانية كحد أقصى).",
+ov_sub:"التراكب (صورة داخل صورة)",ov_hint:"في الوسائط، قلب على «＋ PiP» على أي فيديو أو صورة باش تحطها فوق الفيديو الرئيسي. ومن بعد قلب على شريطها في مسار التراكب باش تحركها ولا تكبرها ولا تعاود توقيتها.",
+stab_sub:"🎯 التثبيت — تنعيم اللقطات المهتزة",stab_btn:"🎯 ثبّت المقطع المختار",stab_hint:"كيحلل حركة الكاميرا في المقطع على الجهاز وكيعاكس الإزاحة في كل إطار (أول 30 ثانية). قلب مرة أخرى باش تحيدو.",
+reframe_sub:"📐 إعادة التأطير للعمودي (بأسلوب Adobe)",reframe_btn:"📐 عاود تأطير المقطع المختار — الذكاء كيتبع الشخص",
+reframe_hint:"كيلقى الشخص في كل لحظة (ذكاء على الجهاز) وكيحرّك القصّ العمودي باش يبقى مؤطّر. كيضبط اللوحة على 9:16 ملء. قلب مرة أخرى باش تحيدو.",
+blur_sub:"🔒 تمويه الخصوصية — الوجوه، اللوحات، الشاشات",blur_btn:"＋ زيد منطقة تمويه عند المؤشر",
+snap_sub:"🧲 القصّ على الإيقاع",snap_hint:"ملي يكون خدام، قصّ مقطع كيلصق القطع لأقرب إيقاع موسيقي مكشوف.",
+audio_tip:"نصيحة: كل مقطع عندو الصوت ديالو بوحدو — اختار مقطع في التحرير.",
+duck_hint:"ملي يكون خدام، الموسيقى كتنخفض تلقائياً كلما كان صوت المقطع (الكلام) عالي، وكترجع في الوقفات.",
+mmstate:"100% أصلي، كيتألف في المتصفح ديالك — ديالك تستعملو في أي بلاصة، بلا حقوق.",
+vostate:"سجّل تعليق صوتي وغادي يوصل لمكتبتك — ومن بعد ضبّطو كمسار 2 باش تهضر فوق الفيديو ديالك.",
+sfx_hint:"قلب على واحد — كيتصنع على جهازك وكيزيد لمكتبتك، جاهز للتستعمل كمسار.",
+beatstate:"الإيقاعات كتبان كعلامات تحت الخط الزمني.",
+quickcap_sub:"ترجمات سريعة — سطر واحد = ترجمة وحدة (2.5 ثانية لكل وحدة، محروقة في التصدير)",
+capstate:"أول استعمال كيحمّل نموذج Whisper (حوالي 40 MB) مرة وحدة. ومن بعد كيخدم على الجهاز. اختار مقطع فيديو في الخط الزمني أولاً — الترجمات كتحط على داك المقطع.",
+capedit_sub:"✂️ التحرير بالنص — قصّ الفيديو بكلماتو",capedit_hint:"من بعد الترجمات التلقائية، كل سطر منطوق كيبان هنا. قصّ سطر كيحيد داك المومنت من الفيديو نفسو والخط الزمني كيتسدّ — التحرير بالنص ديال Premiere، على جهازك.",
+yourtexts_sub:"النصوص ديالك",fxlooks_sub:"🎬 إطلالات المؤثرات — بلمسة وحدة (بأسلوب Premiere / VN)",
+fxlooks_hint:"إطلالات بلمسة وحدة، بلا منزلاقات: خطوط مسح VHS + شريط تتبع، فيلم قديم مخدوش ودافئ، أطراف RGB لونية، وضبابية تيلت-شيفت مصغرة. كتطبق على المعاينة والتصديرين بجوج، وكتحفظ مع المشروع.",
+lut_sub:"🎚 LUT — درجات لون احترافية",lut_hint:"الـLUT هي ملفات .cube اللي كيستعملوها المحترفون في Premiere / DaVinci / Filmora. الـLUT كيطبق على الفيديو كامل والتصدير. (حزم LUT مجانية موجودة في كل بلاصة على الإنترنت.)",
+adjust_sub:"الضبط",procolor2_sub:"اللون الاحترافي",tpl_hint:"لمسة وحدة كتضبط الأبعاد والفلتر والانتقالة ونصوص جاهزة للتعديل. ومن بعد بدّل غير الكلمات.",start_sub:"بدا مباشرة",
+footer_txt:"CutVault v24 — منتج أصلي من CineVault، مستوحى من أساليب المحررين العصريين. ما عندو حتى علاقة بـCapCut / ByteDance. الملفات ما كتخرجش من جهازك أبداً.",
+avtitle_ph:"عنوان الفيديو ديالك…",aiprompt_ph:"وصف المقطع: أمواج كتضرب في شاطئ عند الغروب…",aitok_ph:"الرمز المجاني ديال HuggingFace (hf_…)",newtext_ph:"كتب عنوان ولا تعليق…",caplines_ph:"لصق ولا كتب أسطر الترجمات هنا، سطر في كل مرة…"},
 es:{t_media:"Medios",t_edit:"Editar",t_audio:"Audio",t_text:"Texto",t_effects:"Efectos",t_ratio:"Formato",t_templates:"Plantillas",s_media:"➕ Medios",s_edit:"✂️ Editar clip",s_audio:"🎵 Audio",s_text:"T Texto y pegatinas",s_effects:"✨ Efectos y filtros",s_ratio:"▣ Formato del lienzo",s_templates:"⧉ Plantillas",export:"⬇ Exportar",hc_title:"🎬 ¿Qué quieres crear?",hc_add:"➕ Añadir mi vídeo o foto",hc_auto:"🤖 Crea un vídeo por mí",hc_demo:"▶ Probar el proyecto demo",hc_note:"Sin registro · tus archivos nunca salen de este dispositivo",qb_split:"✂ Dividir",qb_dup:"⧉ Duplicar",qb_speed:"🐢 Velocidad",qb_color:"🎨 Color",qb_del:"🗑 Eliminar",btn_freeze:"❄ Congelar fotograma",btn_reverse:"⏪ Invertir clip",demo_btn:"▶ Cargar el proyecto demo (clip + música + plantilla)",sub_projects:"💾 Proyectos en este dispositivo",sub_stock:"🎁 Pack multimedia integrado (nuestro, uso libre)",sub_auto:"🎬 Creador automático de vídeos",sub_aivideo:"🤖 Vídeo IA desde texto (nube · beta)",btn_build:"🎬 Crear mi vídeo",btn_gen_clip:"🤖 Generar clip",sub_music:"🎵 Música IA — compone en tu dispositivo",btn_gen_song:"🎵 Generar mi canción",sub_vo:"🎙 Voz en off — graba tu voz",sub_beats:"🥁 Sincronía con el ritmo",sub_looks:"Looks — combos pro en un toque",sub_postfx:"Post FX — vídeo completo",sub_procolor:"Color Pro — tonos divididos (estilo Lumetri)",sub_intensity:"Intensidad del filtro",sub_trans:"Transición entre clips"}};
 function applyLang(l){
  document.querySelectorAll("[data-i18n]").forEach(el=>{
@@ -1510,12 +1636,19 @@ function applyLang(l){
  document.body.classList.toggle("rtl",rtl);
  const sel=$("#langSel"); if(sel)sel.value=l;
  localStorage.setItem("cv_lang",l);
+ document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ if(el.dataset.enPh==null)el.dataset.enPh=el.placeholder;
+  const k=el.dataset.i18nPh; el.placeholder=(I18N[l]&&I18N[l][k])?I18N[l][k]:el.dataset.enPh });
+ applyLangDeep(l);
 }
 (()=>{ const sel=$("#langSel"); if(!sel)return;
  sel.onchange=()=>applyLang(sel.value);
- const saved=localStorage.getItem("cv_lang")||"en";
+ const saved=localStorage.getItem("cv_lang")||(((navigator.language||"").toLowerCase().startsWith("ar"))?"ar":"en");
  if(saved!=="en")applyLang(saved); else sel.value="en";
 })();
+/* keep generated panels Arabic after every re-render */
+["renderOvPanel","renderBlurPanel","renderMedia","renderCapEdit"].forEach(fn=>{ const orig=window[fn];
+ if(typeof orig==="function")window[fn]=function(){ const r=orig.apply(this,arguments);
+  if(curLang==="ar")translateDOM(document); return r } });
 /* ----- Home card + quick actions (Phase L: ease first) ----- */
 function openSheetByName(name){
  closeSheets();
