@@ -241,6 +241,11 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   </div>
   <p class="hint">Builds a complete 9:16 video automatically — scenes, animated zoom, your title, music. Replaces the current timeline (you can undo).</p>
   <div class="sub" data-i18n="sub_aivideo">🤖 AI Video from text (cloud · beta)</div>
+  <div class="field"><label>AI provider</label><select id="aiProv" style="width:100%">
+    <option value="hf">HuggingFace — free token</option>
+    <option value="veo">Google Gemini Veo — your API key</option>
+  </select></div>
+  <input type="password" id="veoTok" placeholder="Your Gemini API key (AIza…) — Veo needs a billed Gemini key" style="width:100%;display:none">
   <input type="password" id="aiTok" placeholder="Your free HuggingFace token (hf_…)" style="width:100%">
   <input type="text" id="aiPrompt" placeholder="Describe the clip: waves crashing on a beach at sunset…" style="width:100%;margin-top:7px">
   <button class="bigbtn" id="aiGen" style="width:100%;margin-top:7px" data-i18n="btn_gen_clip">🤖 Generate clip</button>
@@ -281,6 +286,9 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <div class="sub">🎯 Stabilize — smooth out shaky footage</div>
   <button id="stabBtn" style="width:100%">🎯 Stabilize selected clip</button>
   <p class="hint">Analyzes the clip's camera motion on-device and counter-shifts every frame (first 30 s). Tap again to remove it.</p>
+  <div class="sub">📐 Auto-reframe to vertical (Adobe-style)</div>
+  <button id="reframeBtn" style="width:100%">📐 Reframe selected clip — AI follows the person</button>
+  <p class="hint">Finds the person in every moment (on-device AI) and pans the vertical crop to keep them framed. Sets the canvas to 9:16 Fill. Tap again to remove.</p>
   <div class="sub">🔒 Privacy blur — faces, plates, screens</div>
   <button id="blurAdd" style="width:100%">＋ Add blur region at playhead</button>
   <div id="blurPanel" style="margin-top:8px"></div>
@@ -386,6 +394,9 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <button id="srtExp" style="flex:1">⬇ Export subtitles (.srt)</button>
     <label class="gold" style="flex:1;text-align:center;padding:11px;border-radius:10px;cursor:pointer;font-weight:700">⬆ Import .srt<input type="file" id="srtIn" accept=".srt,text/plain" hidden></label>
   </div>
+  <div class="sub">✂️ Text-based editing — cut the video by its words</div>
+  <div id="capEditList"></div>
+  <p class="hint">After Auto-captions, every spoken line appears here. Cutting a line removes that moment from the video itself and the timeline ripples closed — Premiere's text-based editing, on your device.</p>
   <div class="sub">Your texts</div>
   <div id="textList"></div>
 </div>
@@ -492,7 +503,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v21 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v22 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

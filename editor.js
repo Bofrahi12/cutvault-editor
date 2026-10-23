@@ -153,8 +153,12 @@ function renderSegPanel(){
   <div class="slider-row"><span>Trim end</span><input type="range" id="spOut" min="0" max="${m.duration}" step="0.05" value="${s.out}"><output>${fmt(s.out)}</output></div>
   <div class="field"><label>Speed</label><select id="spSpeed" style="width:100%">${[0.5,0.75,1,1.25,1.5,2].map(v=>`<option value="${v}" ${s.speed===v?"selected":""}>${v}×</option>`).join("")}</select></div>
   <div class="field"><label>Speed ramp (curve)</label><select id="spRamp" style="width:100%">
-    ${[["none","None — constant speed"],["up","Ramp up · slow → fast"],["down","Ramp down · fast → slow"],["hero","Hero moment · fast → slow-mo → fast"],["slowmo","Smooth slow motion"]].map(([v,l])=>`<option value="${v}" ${(s.ramp||"none")===v?"selected":""}>${l}</option>`).join("")}
+    ${[["none","None — constant speed"],["up","Ramp up · slow → fast"],["down","Ramp down · fast → slow"],["hero","Hero moment · fast → slow-mo → fast"],["slowmo","Smooth slow motion"],["curve","✏️ Custom curve — draw your own (VN-style)"]].map(([v,l])=>`<option value="${v}" ${(s.ramp||"none")===v?"selected":""}>${l}</option>`).join("")}
   </select></div>
+  <div id="curveBox" style="display:${s.ramp==="curve"?"block":"none"};margin-top:7px">
+    <canvas id="curveCv" width="300" height="92" style="width:100%;height:92px;background:#101319;border:1px solid var(--line);border-radius:9px;touch-action:none"></canvas>
+    <p class="hint">Drag the 5 dots: the line is the speed across the clip (top = 3× fast, bottom = 0.2× slow-mo). This is your own speed curve — honored in playback and both exports.</p>
+  </div>
   <div class="slider-row"><span>Volume</span><input type="range" id="spVol" min="0" max="100" value="${s.vol!=null?s.vol:100}"><output>${s.vol!=null?s.vol:100}%</output></div>
   <div class="row"><button id="spLeft">← Move</button><button id="spRight">Move →</button></div>`+TF_HTML(s);
   $("#spVol").oninput=e=>{s.vol=+e.target.value;e.target.nextElementSibling.textContent=s.vol+"%";const cs=segments[curSeg];if(cs&&cs.id===s.id)vid.volume=($("#videoVol").value/100)*(s.vol/100)};
@@ -163,7 +167,31 @@ function renderSegPanel(){
   $("#spOut").oninput=e=>{s.out=Math.max(+e.target.value,s.in+0.1);e.target.nextElementSibling.textContent=fmt(s.out);$("#tDur").textContent=fmt(progDur());renderTimelineSoft()};
   $("#spIn").onchange=()=>pushHistory(); $("#spOut").onchange=()=>pushHistory();
   $("#spSpeed").onchange=e=>{s.speed=+e.target.value;renderTimeline();pushHistory()};
-  $("#spRamp").onchange=e=>{s.ramp=e.target.value;pushHistory();flashNow(s.ramp==="none"?"Speed ramp off":"Speed ramp set — press ▶ to feel it")};
+  $("#spRamp").onchange=e=>{s.ramp=e.target.value; if(s.ramp==="curve"&&!s.rampCurve)s.rampCurve=[1,1,1,1,1];
+   renderSegPanel(); pushHistory(); flashNow(s.ramp==="none"?"Speed ramp off":s.ramp==="curve"?"Draw your speed curve ✏️":"Speed ramp set — press ▶ to feel it")};
+  const ccv=$("#curveCv");
+  if(ccv&&s.ramp==="curve"){ if(!s.rampCurve)s.rampCurve=[1,1,1,1,1];
+   const cx2=ccv.getContext("2d");
+   const drawCurve=()=>{ const W=300,H=92; cx2.clearRect(0,0,W,H);
+    cx2.strokeStyle="rgba(255,255,255,.14)"; cx2.beginPath();
+    const yOf=v=>H-6-((v-0.2)/(3-0.2))*(H-14);
+    cx2.moveTo(0,yOf(1)); cx2.lineTo(W,yOf(1)); cx2.stroke();
+    cx2.strokeStyle="#f5cd63"; cx2.lineWidth=2.4; cx2.beginPath();
+    s.rampCurve.forEach((v,i)=>{ const x=i*(W/4); i?cx2.lineTo(x,yOf(v)):cx2.moveTo(x,yOf(v)) });
+    cx2.stroke(); cx2.fillStyle="#f5cd63";
+    s.rampCurve.forEach((v,i)=>{ cx2.beginPath(); cx2.arc(i*(W/4),yOf(v),6,0,7); cx2.fill() });
+    cx2.lineWidth=1 };
+   drawCurve();
+   let dragI=-1;
+   const posOf=e=>{ const r=ccv.getBoundingClientRect();
+    return {x:(e.clientX-r.left)/r.width*300, y:(e.clientY-r.top)/r.height*92} };
+   ccv.onpointerdown=e=>{ const p=posOf(e); let best=1e9;
+    s.rampCurve.forEach((v,i)=>{ const d=Math.abs(p.x-i*75); if(d<best){best=d;dragI=i} });
+    ccv.setPointerCapture(e.pointerId); movePt(p) };
+   const movePt=p=>{ if(dragI<0)return; const v=0.2+(1-(p.y-6)/80)*2.8;
+    s.rampCurve[dragI]=Math.round(Math.max(0.2,Math.min(3,v))*20)/20; drawCurve() };
+   ccv.onpointermove=e=>{ if(dragI>=0)movePt(posOf(e)) };
+   ccv.onpointerup=()=>{ if(dragI>=0){dragI=-1; pushHistory(); flashNow("Speed curve set 🌀 — press ▶")} } }
  }
  const L=$("#spLeft"),R=$("#spRight"),i=segments.indexOf(s);
  if(L)L.onclick=()=>{if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];renderTimeline();pushHistory()}};
@@ -318,6 +346,7 @@ function renderTextList(){
   const tbu=d.querySelector(".tbUp"); if(tbu)tbu.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>=0&&i<texts.length-1){texts.splice(i,1);texts.splice(i+1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
   const tbn=d.querySelector(".tbDn"); if(tbn)tbn.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>0){texts.splice(i,1);texts.splice(i-1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
   box.appendChild(d)});
+ renderCapEdit();
 }
 
 /* ---------- playback engine ---------- */
@@ -377,6 +406,13 @@ function drawCensor(pt){ if(!blurs.length)return; const W=cv.width,H=cv.height;
    ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
    ctx.filter=`blur(${Math.max(8,Math.round(W*0.016))}px)`;
    ctx.drawImage(tc,x-6,y-6,w+12,h+12); ctx.restore(); ctx.filter="none" } } }
+function segRateAt(s,q){ const b=s.speed||1; q=Math.max(0,Math.min(1,q));
+ if(s.ramp==="curve"&&s.rampCurve&&s.rampCurve.length===5){ const c=s.rampCurve, x=q*4, i=Math.min(3,Math.floor(x)), f=x-i; return b*(c[i]+(c[i+1]-c[i])*f) }
+ if(s.ramp==="up")return b*(0.4+1.7*q);
+ if(s.ramp==="down")return b*(2.1-1.7*q);
+ if(s.ramp==="hero")return b*(q<0.45?(1.9-3.4*q):(0.37+2.9*(q-0.45)));
+ if(s.ramp==="slowmo")return b*0.45;
+ return b }
 function drawFrame(){
  const W=cv.width,H=cv.height;ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
  const s=segments[curSeg],m=s?media.get(s.mediaId):null;
@@ -433,6 +469,7 @@ function drawFrame(){
       if(s.flip)ctx.scale(-1,1);
       if(s.track&&trackPt){const sx2=Math.max(-(dw-W)/2,Math.min((dw-W)/2,-(trackPt.x-0.5)*dw)), sy2=Math.max(-(dh-H)/2,Math.min((dh-H)/2,-(trackPt.y-0.5)*dh)); ctx.translate(sx2,sy2)}
       if(s.stab&&s.stab.off&&s.stab.off.length){const si=Math.max(0,Math.min(s.stab.off.length-1,Math.round(lt/(s.stab.step||0.2))));const so=s.stab.off[si];ctx.translate(so[0]*(W/96),so[1]*(W/96))}
+      if(s.reframe&&s.reframe.xs&&s.reframe.xs.length&&dw>W+4){const ri=Math.max(0,Math.min(s.reframe.xs.length-1,Math.round(lt/(s.reframe.step||0.25))));const cxR=s.reframe.xs[ri];ctx.translate(Math.max(-(dw-W)/2,Math.min((dw-W)/2,(0.5-cxR)*dw)),0)}
       ctx.rotate((s.rot||0)*Math.PI/180+spinA+ROT*Math.PI/180);
       ctx.drawImage(src,-dw/2,-dh/2,dw,dh);ctx.restore();
     };
@@ -613,12 +650,8 @@ function loop(){
  if(playing||exporting){
   const s=segments[curSeg]; const m=s?media.get(s.mediaId):null;
   if(s&&m&&m.type!=="image"&&s.ramp&&s.ramp!=="none"&&vid.readyState>=1){
-   const q=Math.max(0,Math.min(1,(vid.currentTime-s.in)/Math.max(0.1,s.out-s.in))); const b=s.speed||1; let r=b;
-   if(s.ramp==="up")r=b*(0.4+1.7*q);
-   else if(s.ramp==="down")r=b*(2.1-1.7*q);
-   else if(s.ramp==="hero")r=b*(q<0.45?(1.9-3.4*q):(0.37+2.9*(q-0.45)));
-   else if(s.ramp==="slowmo")r=b*0.45;
-   vid.playbackRate=Math.max(0.12,Math.min(4,r));
+   const q=Math.max(0,Math.min(1,(vid.currentTime-s.in)/Math.max(0.1,s.out-s.in)));
+   vid.playbackRate=Math.max(0.12,Math.min(4,segRateAt(s,q)));
   }
  }
  if(audioCtx){
@@ -695,6 +728,43 @@ $("#exportBtn").onclick=()=>{
 function finishExport(){ if(recorder&&recorder.state==="recording"){try{recorder.stop()}catch(e){}} }
 /* ================= FAST EXPORT (WebCodecs, frame-stepped) ================= */
 let fastBusy=false;
+/* ----- Auto-reframe (Adobe-style): person-centroid pan path for vertical crops ----- */
+async function analyzeReframe(s){
+ const m=media.get(s.mediaId);
+ if(!m||m.type==="image"){ flashNow("Reframe works on video clips"); return }
+ if(s.reframe){ delete s.reframe; flashNow("Auto-reframe removed"); renderTimeline(); drawFrame(); pushHistory(); markDirty(); return }
+ flashNow("📐 Reframing — the AI is finding the person…");
+ await initSegmenters();
+ if(!segImage){ flashNow(segErr||"Reframe model unavailable"); return }
+ try{
+  stopPlayback(); vid.pause(); vid.src=m.url;
+  await new Promise(r=>{ if(vid.readyState>=1)return r(); vid.onloadedmetadata=()=>r(); setTimeout(r,2500) });
+  const step=0.25, t1=Math.min(s.out,s.in+30), xs=[]; let last=0.5, seen=0, total=0;
+  for(let t=s.in;t<t1;t+=step){ total++;
+   await seekVidT(t);
+   const res=segImage.segment(vid);
+   const mask=res&&res.categoryMask;
+   if(mask){ const w=mask.width,h=mask.height,arr=mask.getAsUint8Array();
+    let sx=0,cnt=0,tot=0;
+    for(let y=0;y<h;y+=3)for(let x=0;x<w;x+=3){ tot++; if(arr[y*w+x]<128){ sx+=x; cnt++ } }
+    const cov=cnt/Math.max(1,tot);
+    if(cov>0.004&&cov<0.55){ last=+(sx/cnt/w).toFixed(3); seen++ }
+    try{mask.close()}catch(e){}
+   }
+   xs.push(last);
+   flashNow("📐 Reframing… "+Math.round((t-s.in)/Math.max(0.1,t1-s.in)*100)+"%");
+  }
+  if(seen<Math.max(3,total*0.6)){ flashNow("No clear person found in this clip — auto-reframe needs a visible person"); return }
+  const sm=xs.map((v,i)=>{ const a=xs[Math.max(0,i-1)],b=xs[Math.min(xs.length-1,i+1)]; return +(((a+v+b)/3)).toFixed(3) });
+  s.reframe={step, xs:sm};
+  window.__reframeDebug={samples:xs.length, personFrames:seen, xs:sm.slice(0,12)};
+  setSelect("#ratioSel","9:16"); setSelect("#fitSel","fill");
+  $("#ratioSel").dispatchEvent(new Event("change")); $("#fitSel").dispatchEvent(new Event("change"));
+  renderTimeline(); drawFrame(); pushHistory(); markDirty();
+  flashNow("Auto-reframe on 📐 — canvas is 9:16 and the crop follows the person");
+ }catch(e){ flashNow("Reframe failed: "+((e&&e.message)||e)) }
+}
+{ const rb=$("#reframeBtn"); if(rb)rb.onclick=()=>{ if(curSeg<0||!segments[curSeg]){flashNow("Select a clip first");return} analyzeReframe(segments[curSeg]) }; }
 function seekVidT(t,timeout=1400){ return new Promise(r=>{ let done=false;
  const fin=()=>{if(done)return;done=true;vid.removeEventListener("seeked",fin);r()};
  vid.addEventListener("seeked",fin); setTimeout(fin,timeout);
@@ -716,10 +786,7 @@ async function buildAudioBuffer(total){
     const g=oc.createGain(); g.gain.value=((s.vol!=null?s.vol:100)/100)*vidVol;
     const b0=s.speed||1;
     if(s.ramp&&s.ramp!=="none"){ const steps=16;
-     for(let k2=0;k2<=steps;k2++){ const q=k2/steps; let r=b0;
-      if(s.ramp==="up")r=b0*(0.4+1.7*q); else if(s.ramp==="down")r=b0*(2.1-1.7*q);
-      else if(s.ramp==="hero")r=b0*(q<0.45?(1.9-3.4*q):(0.37+2.9*(q-0.45)));
-      else if(s.ramp==="slowmo")r=b0*0.45;
+     for(let k2=0;k2<=steps;k2++){ const q=k2/steps; const r=segRateAt(s,q);
       if(k2===0)src.playbackRate.setValueAtTime(r,tAcc); else src.playbackRate.linearRampToValueAtTime(r,tAcc+dur*q) } }
     else src.playbackRate.value=b0;
     src.connect(g); g.connect(comp); try{ src.start(tAcc,s.in,(s.out-s.in)+0.05) }catch(e){} } }
@@ -1131,6 +1198,24 @@ function drawOverlays(pt){
   if(!src||!sw)continue;
   const w=cv.width*(ov.scale/100), h=w*sh/sw;
   const dx=cv.width*ov.x/100-w/2, dy=cv.height*ov.y/100-h/2;
+  if(ov.feather>0&&(ov.mask==="circle"||ov.mask==="round")){
+   const tcF=drawOverlays.tcF||(drawOverlays.tcF=document.createElement("canvas"));
+   tcF.width=Math.max(2,Math.round(w)); tcF.height=Math.max(2,Math.round(h));
+   const g2=tcF.getContext("2d"); g2.clearRect(0,0,tcF.width,tcF.height);
+   g2.drawImage(src,0,0,tcF.width,tcF.height);
+   g2.globalCompositeOperation="destination-in";
+   const cxp=tcF.width/2, cyp=tcF.height/2, rOut=cxp;
+   const rIn=Math.max(1,rOut*(1-(ov.feather/100)*1.3));
+   g2.save(); g2.translate(cxp,cyp); g2.scale(1,tcF.height/Math.max(1,tcF.width)); g2.translate(-cxp,-cyp);
+   const gr=g2.createRadialGradient(cxp,cyp,rIn,cxp,cyp,rOut);
+   gr.addColorStop(0,"rgba(0,0,0,1)"); gr.addColorStop(1,"rgba(0,0,0,0)");
+   g2.fillStyle=gr; g2.fillRect(0,0,tcF.width,tcF.height); g2.restore();
+   ctx.save(); ctx.globalAlpha=ov.op!=null?ov.op:1; ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=12;
+   ctx.drawImage(tcF,dx,dy,w,h); ctx.restore();
+   if(ov.border){ ctx.save(); ctx.beginPath(); ctx.ellipse(dx+w/2,dy+h/2,w/2,h/2,0,0,Math.PI*2);
+    ctx.lineWidth=Math.max(3,cv.width*0.006); ctx.strokeStyle="#f5cd63"; ctx.stroke(); ctx.restore() }
+   continue;
+  }
   const mkPath=()=>{ const cx=dx+w/2, cy=dy+h/2; ctx.beginPath();
    if(ov.mask==="circle")ctx.ellipse(cx,cy,w/2,h/2,0,0,Math.PI*2);
    else if(ov.mask==="round")ctx.roundRect(dx,dy,w,h,Math.min(w,h)*0.22);
@@ -1175,6 +1260,8 @@ function renderOvPanel(){
  <div class="field"><label>Duration (s)</label><input type="number" id="ovDur" step="0.1" min="0.3" value="${ov.dur}"></div></div>
  <div class="row"><div class="field"><label>Mask shape</label><select id="ovMask" style="width:100%">${["none","circle","round","heart","star"].map(v=>`<option value="${v}" ${(ov.mask||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div>
  <div class="field"><label>Gold border</label><select id="ovBorder" style="width:100%"><option value="0" ${!ov.border?"selected":""}>Off</option><option value="1" ${ov.border?"selected":""}>On</option></select></div></div>
+ <div class="slider-row"><span>Soft edge (feather)</span><input type="range" id="ovFeather" min="0" max="40" value="${ov.feather||0}"><output>${ov.feather||0}%</output></div>
+ <p class="hint">Feather softens circle / round masks (VN-style). 0 = hard edge.</p>
  <button class="danger" id="ovDel" style="width:100%">🗑 Delete overlay</button>`;
  $("#ovScale").oninput=e=>{ov.scale=+e.target.value;e.target.nextElementSibling.textContent=ov.scale+"%";drawFrame()};
  $("#ovX").oninput=e=>{ov.x=+e.target.value;e.target.nextElementSibling.textContent=ov.x;drawFrame()};
@@ -1186,6 +1273,7 @@ function renderOvPanel(){
  $("#ovDur").onchange=e=>{ov.dur=Math.max(0.3,+e.target.value||1);renderOverlays();pushHistory()};
  const om=$("#ovMask"); if(om)om.onchange=e=>{ov.mask=e.target.value;drawFrame();pushHistory()};
  const ob=$("#ovBorder"); if(ob)ob.onchange=e=>{ov.border=e.target.value==="1";drawFrame();pushHistory()};
+ const ofe=$("#ovFeather"); if(ofe){ ofe.oninput=e=>{ov.feather=+e.target.value;e.target.nextElementSibling.textContent=ov.feather+"%";drawFrame()}; ofe.onchange=()=>pushHistory() }
  $("#ovDel").onclick=()=>{overlays=overlays.filter(o=>o.id!==ov.id);selOv=null;renderOverlays();renderOvPanel();drawFrame();pushHistory()};
 }
 /* overlay video sync */
@@ -1443,10 +1531,44 @@ $("#avGo").onclick=async()=>{ const btn=$("#avGo"); btn.disabled=true; btn.textC
   flashNow("Auto video built ✓ — press play, then Export");
  }catch(e){ flashNow("Auto build failed — add an image first, then retry") }
  btn.disabled=false; btn.textContent="🎬 Build my video" };
+async function genVeo(st,btn){
+ const key=(($("#veoTok")||{}).value||"").trim(), prompt=$("#aiPrompt").value.trim();
+ if(!key){st.textContent="Paste your Gemini API key first (aistudio.google.com → Get API key).";return}
+ if(!prompt){st.textContent="Describe the clip you want first.";return}
+ btn.disabled=true; st.textContent="🎬 Veo is generating on Google… usually 1–3 minutes. Keep this tab open.";
+ try{
+  const base="https://generativelanguage.googleapis.com/v1beta";
+  const r=await fetch(base+"/models/veo-3.0-fast-generate-preview:predictLongRunning?key="+encodeURIComponent(key),{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio:"9:16"}})});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok||!j||!j.name){ st.textContent="Veo said: "+(((j&&j.error)&&j.error.message)||("HTTP "+r.status))+" — Veo needs a billed Gemini key; free keys cannot generate video."; btn.disabled=false; return }
+  let uri=null;
+  for(let k=0;k<24&&!uri;k++){ await new Promise(res=>setTimeout(res,10000));
+   const pr=await fetch(base+"/"+j.name+"?key="+encodeURIComponent(key));
+   const pj=await pr.json().catch(()=>null);
+   if(pj&&pj.done){ const samp=pj.response&&pj.response.generateVideoResponse&&pj.response.generateVideoResponse.generatedSamples&&pj.response.generateVideoResponse.generatedSamples[0];
+    uri=samp&&samp.video&&samp.video.uri;
+    if(!uri){ st.textContent="Veo finished without a video: "+(((pj.error)&&pj.error.message)||"unknown"); btn.disabled=false; return } } }
+  if(!uri){ st.textContent="Veo is still generating after 4 minutes — try again in a moment."; btn.disabled=false; return }
+  const vr=await fetch(uri,{headers:{"x-goog-api-key":key}});
+  const blob=await vr.blob();
+  addFiles([new File([blob],"ai-veo.mp4",{type:"video/mp4"})]);
+  st.textContent="✓ Your Veo clip was added to the timeline.";
+  flashNow("Veo clip added ✓");
+ }catch(e){ st.textContent="Could not reach Google's API from this browser — check your connection and retry." }
+ btn.disabled=false }
 (()=>{ const tok=$("#aiTok"); if(!tok)return;
  tok.value=localStorage.getItem("cv_hf_token")||"";
  tok.onchange=()=>localStorage.setItem("cv_hf_token",tok.value.trim());
+ const vtok=$("#veoTok"), prov=$("#aiProv");
+ if(vtok&&prov){ vtok.value=localStorage.getItem("cv_veo_key")||"";
+  vtok.onchange=()=>{ const vv=vtok.value; localStorage.setItem("cv_veo_key", vv.trim()) };
+  const syncProv=()=>{ const v=prov.value==="veo"; vtok.style.display=v?"block":"none"; tok.style.display=v?"none":"block";
+   $("#aiState").textContent=v?("Veo runs on Google's Gemini API with YOUR key (aistudio.google.com). Note: Veo requires a billed Gemini account — Google gives no free Veo tier. Your key stays in this browser."):("True text-to-video needs cloud GPUs, so this uses YOUR OWN free token from huggingface.co (Settings → Access Tokens → Read). The clip is generated there and added to your timeline. Your token never leaves this browser except to HuggingFace.") };
+  prov.onchange=syncProv }
  $("#aiGen").onclick=async()=>{ const st=$("#aiState"), btn=$("#aiGen");
+  if(prov&&prov.value==="veo"){ await genVeo(st,btn); return }
   const token=tok.value.trim(), prompt=$("#aiPrompt").value.trim();
   if(!token){st.textContent="Paste your free HuggingFace token first (huggingface.co → Settings → Access Tokens).";return}
   if(!prompt){st.textContent="Describe the clip you want first.";return}
@@ -1464,6 +1586,49 @@ $("#avGo").onclick=async()=>{ const btn=$("#avGo"); btn.disabled=true; btn.textC
   }catch(e){ st.textContent="Could not reach HuggingFace from this browser — check your connection and retry." }
   btn.disabled=false };
 })();
+/* ----- Text-based editing: cut program ranges by caption lines ----- */
+function cutProgramRange(t0,t1){
+ const total=progDur(), len=t1-t0;
+ if(len<=0.05||len>=total-0.05){ flashNow("That line covers the whole video — nothing to ripple"); return false }
+ let acc=0; const out=[];
+ for(const s of segments){ const d=segDur(s), st=acc, en=acc+d; acc=en;
+  if(en<=t0||st>=t1){ out.push(s); continue }
+  const m=media.get(s.mediaId); if(!m)continue;
+  if(m.type==="image"){
+   if(st<t0)out.push({...s,id:"s"+(++segSeq),dur:+(t0-st).toFixed(3)});
+   if(en>t1)out.push({...s,id:"s"+(++segSeq),dur:+(en-t1).toFixed(3)});
+   continue }
+  const sp=s.speed||1;
+  if(st<t0)out.push({...s,id:"s"+(++segSeq),out:+(s.in+(t0-st)*sp).toFixed(3)});
+  if(en>t1)out.push({...s,id:"s"+(++segSeq),in:+(s.in+(t1-st)*sp).toFixed(3)});
+ }
+ segments=out;
+ const shiftWin=o=>{ const st=o.start, en=o.end;
+  if(en<=t0)return;
+  if(st>=t1){ o.start=+(st-len).toFixed(3); o.end=+(en-len).toFixed(3) }
+  else if(st>=t0&&en<=t1){ o._dead=true }
+  else if(st<t0&&en>t1){ o.end=+(en-len).toFixed(3) }
+  else if(st<t0){ o.end=t0 }
+  else { o.start=t0; o.end=+(en-len).toFixed(3) } };
+ texts.forEach(shiftWin); blurs.forEach(shiftWin);
+ overlays.forEach(o=>{ const w={start:o.start,end:o.start+o.dur}; shiftWin(w);
+  if(w._dead)o._dead=true; else { o.start=w.start; o.dur=Math.max(0.3,+(w.end-w.start).toFixed(3)) } });
+ texts=texts.filter(t=>!t._dead); blurs=blurs.filter(b=>!b._dead); overlays=overlays.filter(o=>!o._dead);
+ curSeg=-1; selSeg=segments.length?segments[0].id:null; selText=null;
+ stopPlayback(); renderTimeline(); renderTextList(); renderBlurPanel(); renderOvPanel(); drawFrame(); pushHistory(); markDirty();
+ flashNow("Cut ✂ — the timeline rippled closed"); return true }
+function renderCapEdit(){ const box=$("#capEditList"); if(!box)return;
+ const caps=texts.filter(t=>t.cap);
+ if(!caps.length){ box.innerHTML='<p class="hint">No caption lines yet — run Auto-captions first.</p>'; return }
+ box.innerHTML="";
+ [...caps].sort((a,b)=>a.start-b.start).forEach(t=>{ const d=document.createElement("div");
+  d.className="text-item"; d.style.cssText="display:flex;gap:8px;align-items:center";
+  d.innerHTML=`<span style="font-size:12px;color:var(--mut);white-space:nowrap">${fmt(t.start)}</span>
+   <span style="flex:1;font-size:13.5px">${t.content.replace(/</g,"&lt;")}</span>
+   <button data-cut="${t.id}" style="min-height:38px">✂ Cut line</button>`;
+  box.appendChild(d) });
+ box.querySelectorAll("[data-cut]").forEach(b=>b.onclick=()=>{ const t=texts.find(x=>x.id===b.dataset.cut);
+  if(t)cutProgramRange(t.start,t.end) }) }
 /* ----- Subtitles: SRT export / import ----- */
 function srtTime(s){ const h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=Math.floor(s%60), ms=Math.round((s%1)*1000);
  const p=(n,l=2)=>String(n).padStart(l,"0"); return `${p(h)}:${p(m)}:${p(ss)},${p(ms,3)}` }
@@ -2211,7 +2376,7 @@ $("#autoCapBtn").onclick=async()=>{
    for(let k=0;k<allWords.length;k+=5){
     const grp=allWords.slice(k,k+5);
     const p0=toProg(grp[0].t0), p1=Math.max(toProg(grp[grp.length-1].t1),p0+0.3);
-    texts.push({id:"t"+(++txtSeq),content:grp.map(g=>g.w).join(" "),start:+p0.toFixed(2),end:+p1.toFixed(2),size:54,color:"#ffffff",stroke:false,x:50,y:88,style:"classic",anim:"none",
+    texts.push({id:"t"+(++txtSeq),content:grp.map(g=>g.w).join(" "),start:+p0.toFixed(2),end:+p1.toFixed(2),size:54,color:"#ffffff",stroke:false,x:50,y:88,style:"classic",anim:"none",cap:true,
      words:grp.map(g=>({w:g.w,s:+toProg(g.t0).toFixed(2),e:+toProg(g.t1).toFixed(2)}))});
     added++;
    }
@@ -2228,7 +2393,7 @@ $("#autoCapBtn").onclick=async()=>{
    const p0=base+Math.max(0,(Math.max(mt0,s.in)-s.in)/(s.speed||1));
    const p1=base+Math.max(0,(Math.min(mt1,s.out)-s.in)/(s.speed||1));
    if(p1<=p0)continue;
-   texts.push({id:"t"+(++txtSeq),content:txt,start:+p0.toFixed(2),end:+p1.toFixed(2),size:54,color:"#ffffff",stroke:true,x:50,y:88,style:"classic",anim:"none"});
+   texts.push({id:"t"+(++txtSeq),content:txt,start:+p0.toFixed(2),end:+p1.toFixed(2),size:54,color:"#ffffff",stroke:true,x:50,y:88,style:"classic",anim:"none",cap:true});
    added++;
   }
   }
