@@ -693,6 +693,151 @@ $("#exportBtn").onclick=()=>{
  setTimeout(()=>{if(exporting&&recorder&&recorder.state==="recording"){try{recorder.stop()}catch(e){}}},(total+4)*1000+8000);
 };
 function finishExport(){ if(recorder&&recorder.state==="recording"){try{recorder.stop()}catch(e){}} }
+/* ================= FAST EXPORT (WebCodecs, frame-stepped) ================= */
+let fastBusy=false;
+function seekVidT(t,timeout=1400){ return new Promise(r=>{ let done=false;
+ const fin=()=>{if(done)return;done=true;vid.removeEventListener("seeked",fin);r()};
+ vid.addEventListener("seeked",fin); setTimeout(fin,timeout);
+ try{ if(Math.abs(vid.currentTime-t)<0.015&&vid.readyState>=2)fin(); else vid.currentTime=t }catch(e){fin()} }) }
+async function buildAudioBuffer(total){
+ const sr=48000, oc=new OfflineAudioContext(2,Math.max(1,Math.ceil(total*sr)),sr);
+ const cache=new Map();
+ const getBuf=async id=>{ if(cache.has(id))return cache.get(id);
+  const m=media.get(id); let b=null;
+  if(m&&m.type!=="image"){ try{ const ab=await (await fetch(m.url)).arrayBuffer(); b=await oc.decodeAudioData(ab) }catch(e){ b=null } }
+  cache.set(id,b); return b };
+ const comp=oc.createDynamicsCompressor(); comp.threshold.value=-3; comp.ratio.value=6;
+ comp.connect(oc.destination);
+ const vidVol=+($("#videoVol").value||100)/100;
+ let tAcc=0; const segBufs=[];
+ for(const s of segments){ const dur=segDur(s), m=media.get(s.mediaId);
+  if(m&&m.type!=="image"){ const buf=await getBuf(s.mediaId); segBufs.push({s,buf,tAcc,dur});
+   if(buf){ const src=oc.createBufferSource(); src.buffer=buf;
+    const g=oc.createGain(); g.gain.value=((s.vol!=null?s.vol:100)/100)*vidVol;
+    const b0=s.speed||1;
+    if(s.ramp&&s.ramp!=="none"){ const steps=16;
+     for(let k2=0;k2<=steps;k2++){ const q=k2/steps; let r=b0;
+      if(s.ramp==="up")r=b0*(0.4+1.7*q); else if(s.ramp==="down")r=b0*(2.1-1.7*q);
+      else if(s.ramp==="hero")r=b0*(q<0.45?(1.9-3.4*q):(0.37+2.9*(q-0.45)));
+      else if(s.ramp==="slowmo")r=b0*0.45;
+      if(k2===0)src.playbackRate.setValueAtTime(r,tAcc); else src.playbackRate.linearRampToValueAtTime(r,tAcc+dur*q) } }
+    else src.playbackRate.value=b0;
+    src.connect(g); g.connect(comp); try{ src.start(tAcc,s.in,(s.out-s.in)+0.05) }catch(e){} } }
+  tAcc+=dur }
+ // music chain: source → duck gain → fade gain → master
+ const mkChain=async(selId,volId,off)=>{
+  const id=$(selId).value; if(!id)return;
+  const buf=await getBuf(id); if(!buf)return;
+  const src=oc.createBufferSource(); src.buffer=buf; src.loop=true;
+  if(off==null){ src.loopStart=musicIn||0 }
+  const duck=oc.createGain(), fade=oc.createGain();
+  fade.gain.value=+($(volId).value||100)/100;
+  src.connect(duck); duck.connect(fade); fade.connect(comp);
+  try{ src.start(off==null?0:off, off==null?0:0) }catch(e){}
+  return {src,duck,fade,buf,isMain:off==null} };
+ const chains=[];
+ const c1=await mkChain("#musicSel","#musicVol",null); if(c1)chains.push(c1);
+ const off2=+($("#music2Off").value||0);
+ const c2=await mkChain("#music2Sel","#music2Vol",off2); if(c2)chains.push(c2);
+ // ducking envelope for track 1 from the video segments' own loudness
+ if(duckOn&&c1&&segBufs.length){ const W=0.1, n=Math.max(1,Math.ceil(total/W)), curve=new Float32Array(n).fill(1);
+  for(let wI=0;wI<n;wI++){ const tp=wI*W; let rms=0,found=false;
+   for(const sb of segBufs){ if(!sb.buf)continue;
+    if(tp>=sb.tAcc&&tp<sb.tAcc+sb.dur){ const st=sb.s.in+(tp-sb.tAcc)*(sb.s.speed||1);
+     const ch=sb.buf.getChannelData(0), i0=Math.floor(st*sb.buf.sampleRate), len=Math.floor(0.1*sb.buf.sampleRate*(sb.s.speed||1));
+     let sum=0,cnt=0; for(let j=i0;j<Math.min(ch.length,i0+len);j+=23){ sum+=ch[j]*ch[j]; cnt++ }
+     if(cnt){ rms=Math.sqrt(sum/cnt); found=true } break } }
+   curve[wI]=(found&&rms>0.03)?0.3:1 }
+  const sm=new Float32Array(n); for(let i=0;i<n;i++){ let a=0,c=0; for(let k=-1;k<=1;k++){ const j=i+k; if(j>=0&&j<n){a+=curve[j];c++} } sm[i]=a/c }
+  c1.duck.gain.setValueCurveAtTime(sm,0,total) }
+ // fades on track 1
+ if(c1){ const g=c1.fade.gain, base=+($("#musicVol").value||100)/100;
+  if(musicFadeIn>0){ g.setValueAtTime(0,0); g.linearRampToValueAtTime(base,Math.min(musicFadeIn,total)) }
+  if(musicFadeOut>0&&total>musicFadeOut){ g.setValueAtTime(base,total-musicFadeOut); g.linearRampToValueAtTime(0,total) } }
+ return oc.startRendering() }
+async function runFastExport(M){
+ const fps=+($("#fpsSel")?$("#fpsSel").value:30), total=progDur();
+ const framesTotal=Math.max(1,Math.round(total*fps));
+ const bar=$("#expBar"), lbl=$("#expLabel");
+ $("#expProg").style.display="block"; $("#expDone").innerHTML="";
+ lbl.textContent="⚡ Preparing audio mix (offline)…";
+ const audioBuf=await buildAudioBuffer(total);
+ let aCodec=null, aMuxCodec=null;
+ try{ if((await AudioEncoder.isConfigSupported({codec:"mp4a.40.2",sampleRate:48000,numberOfChannels:2,bitrate:128000})).supported){aCodec="mp4a.40.2";aMuxCodec="aac"} }catch(e){}
+ if(!aCodec){ try{ if((await AudioEncoder.isConfigSupported({codec:"opus",sampleRate:48000,numberOfChannels:2,bitrate:128000})).supported){aCodec="opus";aMuxCodec="opus"} }catch(e){} }
+ if(!aCodec)throw new Error("no supported audio encoder");
+ lbl.textContent="⚡ Rendering frames…";
+ const muxer=new M.Muxer({ target:new M.ArrayBufferTarget(),
+  video:{codec:"avc",width:cv.width,height:cv.height},
+  audio:{codec:aMuxCodec,sampleRate:48000,numberOfChannels:2},
+  fastStart:"in-memory", firstTimestampBehavior:"offset" });
+ let vMeta=null, aMeta=null;
+ const vEnc=new VideoEncoder({ output:(chunk,meta)=>{ if(meta&&meta.decoderConfig&&!vMeta)vMeta=meta; muxer.addVideoChunk(chunk,meta) },
+  error:e=>{ throw e } });
+ const codecStr=cv.height<=1080?"avc1.640028":cv.height<=1440?"avc1.640032":"avc1.640034";
+ const vCfg={codec:codecStr,width:cv.width,height:cv.height,bitrate:Math.max(4_000_000,Math.round(cv.width*cv.height*fps*0.15)),framerate:fps};
+ const sup=await VideoEncoder.isConfigSupported(vCfg); if(!sup.supported)throw new Error("codec unsupported");
+ vEnc.configure(vCfg);
+ const aEnc=new AudioEncoder({ output:(chunk,meta)=>{ if(meta&&meta.decoderConfig&&!aMeta)aMeta=meta; muxer.addAudioChunk(chunk,meta) },
+  error:e=>{ throw e } });
+ aEnc.configure({codec:aCodec,sampleRate:48000,numberOfChannels:2,bitrate:128_000});
+ stopPlayback(); exporting=true;
+ const savedSeg=curSeg;
+ const frameDurUs=Math.round(1e6/fps);
+ for(let k=0;k<framesTotal;k++){
+  const tProg=Math.min(total-1/fps, k/fps);
+  let idx=0, acc=0; while(idx<segments.length-1&&tProg>=acc+segDur(segments[idx])){ acc+=segDur(segments[idx]); idx++ }
+  const s=segments[idx], m=media.get(s.mediaId), local=tProg-acc;
+  if(idx!==curSeg)loadSegment(idx,false);
+  if(m&&m.type==="image"){ if(imgEl.getAttribute("src")!==m.url)imgEl.src=m.url;
+   imgSegStart=performance.now()-local*1000 }
+  else if(m){ const srcT=Math.min(s.out-0.02, s.in+local*(s.speed||1)); await seekVidT(srcT) }
+  drawFrame();
+  const vf=new VideoFrame(cv,{timestamp:Math.round(k*frameDurUs),duration:frameDurUs});
+  vEnc.encode(vf,{keyFrame:k%(fps*2)===0}); vf.close();
+  while(vEnc.encodeQueueSize>8)await new Promise(r=>setTimeout(r,8));
+  if(k%10===0){ const pc=Math.round(k/framesTotal*100); bar.style.width=pc+"%";
+   lbl.textContent="⚡ Fast rendering… "+pc+"% — frame "+k+" / "+framesTotal;
+   await new Promise(r=>setTimeout(r,0)) } }
+ lbl.textContent="⚡ Encoding audio…";
+ const sr=48000, ch0=audioBuf.getChannelData(0), ch1=audioBuf.numberOfChannels>1?audioBuf.getChannelData(1):ch0;
+ const CH=2048;
+ for(let off=0;off<audioBuf.length;off+=CH){ const n=Math.min(CH,audioBuf.length-off);
+  const data=new Float32Array(n*2); data.set(ch0.subarray(off,off+n),0); data.set(ch1.subarray(off,off+n),n);
+  const ad=new AudioData({format:"f32-planar",sampleRate:sr,numberOfChannels:2,numberOfFrames:n,timestamp:Math.round(off/sr*1e6),data:data.buffer});
+  aEnc.encode(ad); ad.close();
+  while(aEnc.encodeQueueSize>8)await new Promise(r=>setTimeout(r,8)) }
+ await vEnc.flush(); await aEnc.flush(); vEnc.close(); aEnc.close();
+ muxer.finalize();
+ exporting=false;
+ const blob=new Blob([muxer.target.buffer],{type:"video/mp4"});
+ loadSegment(savedSeg>=0?savedSeg:0,false); drawFrame();
+ return blob }
+$("#fastBtn").onclick=async()=>{ if(fastBusy||exporting)return;
+ if(!segments.length){flashNow("Add at least one clip before exporting");return}
+ if(!("VideoEncoder" in window)||!("AudioEncoder" in window)||!("OfflineAudioContext" in window)){
+  flashNow("Fast export needs Chrome or Edge (WebCodecs). Standard Export works in your browser."); return }
+ let M=null;
+ try{ M=await import("https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.mjs") }
+ catch(e){ flashNow("Fast export needs internet once to load its MP4 library — or use standard Export"); return }
+ fastBusy=true; $("#fastBtn").disabled=true; $("#exportBtn").disabled=true;
+ const t0=performance.now();
+ try{ const blob=await runFastExport(M);
+  const secs=((performance.now()-t0)/1000).toFixed(1), mb=(blob.size/1048576).toFixed(2);
+  const url=URL.createObjectURL(blob);
+  $("#expBar").style.width="100%"; $("#expLabel").textContent="⚡ Fast export done in "+secs+"s — MP4, "+mb+" MB";
+  $("#expDone").innerHTML=`<video src="${url}" controls playsinline style="width:100%;border-radius:9px"></video>
+   <a href="${url}" download="${expFileName()}.mp4"><button class="gold" style="width:100%;margin-top:8px">⬇ Download MP4 (${mb} MB)</button></a>
+   <p class="hint">⚡ Rendered fast in ${secs}s (the video itself is ${fmt(progDur())}).</p>`;
+  const sh=document.createElement("button"); sh.textContent="📤 Share"; sh.style.cssText="width:100%;margin-top:8px";
+  sh.onclick=async()=>{ try{ const f=new File([blob],expFileName()+".mp4",{type:"video/mp4"});
+    if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});
+    else if(navigator.share)await navigator.share({title:"CutVault video"});
+    else flashNow("Sharing is not available here — use Download") }catch(e){} };
+  $("#expDone").appendChild(sh);
+ }catch(err){ $("#expLabel").textContent="Fast export failed — standard Export above still works.";
+  flashNow("Fast export failed on this device/browser — standard Export is unaffected") }
+ exporting=false; fastBusy=false; $("#fastBtn").disabled=false; $("#exportBtn").disabled=false };
 function finishExportBlob(){
  clearInterval(expTimer); exporting=false; playing=false; $("#playBtn").textContent="▶"; musEl.pause();
  $("#exportBtn").disabled=false;

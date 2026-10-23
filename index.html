@@ -149,6 +149,8 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button id="redoBtn" title="Redo">↪</button>
   <button id="installBtn" style="display:none">📲 Install app</button>
   <button class="gold" id="exportBtn" data-i18n="export">⬇ Export</button>
+  <button id="fastBtn" style="width:100%;margin-top:8px">⚡ Fast export — direct MP4 (beta)</button>
+  <p class="hint">Fast export renders frame-by-frame with WebCodecs instead of recording in real time — several times faster on phones with hardware decoding, and the MP4 is ready immediately (no conversion step). Needs Chrome/Edge. If anything fails, standard Export above is untouched.</p>
 </header>
 
 <section class="stage">
@@ -490,7 +492,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v20 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v21 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
