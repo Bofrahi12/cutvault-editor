@@ -126,6 +126,8 @@ button{min-height:42px}
 body.pro{--gold:#4d8dff;--gold2:#7db1ff}
 body.pro .sheet,body.pro .timeline{background:#14161c}
 body.pro .logo span{color:#4d8dff}
+body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.rtl .transport{direction:ltr}
+#langSel{background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:0 6px;font-weight:700}
 </style>
 </head>
 <body>
@@ -136,11 +138,12 @@ body.pro .logo span{color:#4d8dff}
     <div class="tagline" id="saveState" style="color:var(--gold2)"></div>
   </div>
   <div class="sp"></div>
+  <select id="langSel" title="Language / Langue / اللغة / Idioma" style="max-width:92px;min-height:42px"><option value="en">🌐 EN</option><option value="fr">🌐 FR</option><option value="ar">🌐 عربي</option><option value="es">🌐 ES</option></select>
   <button id="themeBtn" title="Toggle pro (Premiere-style) theme">🎨</button>
   <button id="undoBtn" title="Undo">↩</button>
   <button id="redoBtn" title="Redo">↪</button>
   <button id="installBtn" style="display:none">📲 Install app</button>
-  <button class="gold" id="exportBtn">⬇ Export</button>
+  <button class="gold" id="exportBtn" data-i18n="export">⬇ Export</button>
 </header>
 
 <section class="stage">
@@ -153,11 +156,11 @@ body.pro .logo span{color:#4d8dff}
   </div>
   <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas>
     <div id="homeCard">
-      <div class="hc-title">🎬 What do you want to make?</div>
-      <button class="gold" id="hcAdd">➕ Add my video or photo</button>
-      <button id="hcAuto">🤖 Auto-make a video for me</button>
-      <button id="hcDemo">▶ Try the demo project</button>
-      <div class="hc-note">No sign-up · your files never leave this device</div>
+      <div class="hc-title" data-i18n="hc_title">🎬 What do you want to make?</div>
+      <button class="gold" id="hcAdd" data-i18n="hc_add">➕ Add my video or photo</button>
+      <button id="hcAuto" data-i18n="hc_auto">🤖 Auto-make a video for me</button>
+      <button id="hcDemo" data-i18n="hc_demo">▶ Try the demo project</button>
+      <div class="hc-note" data-i18n="hc_note">No sign-up · your files never leave this device</div>
     </div>
   </div>
   <div class="transport">
@@ -179,11 +182,11 @@ body.pro .logo span{color:#4d8dff}
     <div id="tlBeats" style="position:relative;height:10px;margin-top:2px;display:none"></div>
     <div class="timeline" id="ovTrackWrap" style="margin-top:7px;display:none"><div style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em;margin-bottom:5px">OVERLAY · PICTURE-IN-PICTURE</div><div class="tl-track" id="tlOverlay" style="min-height:44px"></div></div>
     <div id="quickBar" style="display:none">
-      <button id="qbSplit">✂ Split</button>
-      <button id="qbDup">⧉ Duplicate</button>
-      <button id="qbSpeed">🐢 Speed</button>
-      <button id="qbColor">🎨 Color</button>
-      <button id="qbDel" class="danger">🗑 Delete</button>
+      <button id="qbSplit" data-i18n="qb_split">✂ Split</button>
+      <button id="qbDup" data-i18n="qb_dup">⧉ Duplicate</button>
+      <button id="qbSpeed" data-i18n="qb_speed">🐢 Speed</button>
+      <button id="qbColor" data-i18n="qb_color">🎨 Color</button>
+      <button id="qbDel" class="danger" data-i18n="qb_del">🗑 Delete</button>
     </div>
     <div class="tl-texts" id="tlTexts"></div>
     <div class="progress" id="expProg"><b id="expLabel">Rendering…</b><div class="bar"><i id="expBar"></i></div><p class="hint" style="margin-top:7px">Keep this tab open — export runs in real time.</p></div>
@@ -192,30 +195,30 @@ body.pro .logo span{color:#4d8dff}
 </section>
 
 <nav class="toolbar" id="toolbar">
-  <button class="tool" data-sheet="media"><span class="ic">➕</span><span class="lb">Media</span></button>
-  <button class="tool" data-sheet="edit"><span class="ic">✂️</span><span class="lb">Edit</span></button>
-  <button class="tool" data-sheet="audio"><span class="ic">🎵</span><span class="lb">Audio</span></button>
-  <button class="tool" data-sheet="text"><span class="ic">T</span><span class="lb">Text</span></button>
-  <button class="tool" data-sheet="effects"><span class="ic">✨</span><span class="lb">Effects</span></button>
-  <button class="tool" data-sheet="ratio"><span class="ic">▣</span><span class="lb">Ratio</span></button>
-  <button class="tool" data-sheet="templates"><span class="ic">⧉</span><span class="lb">Templates</span></button>
+  <button class="tool" data-sheet="media"><span class="ic">➕</span><span class="lb" data-i18n="t_media">Media</span></button>
+  <button class="tool" data-sheet="edit"><span class="ic">✂️</span><span class="lb" data-i18n="t_edit">Edit</span></button>
+  <button class="tool" data-sheet="audio"><span class="ic">🎵</span><span class="lb" data-i18n="t_audio">Audio</span></button>
+  <button class="tool" data-sheet="text"><span class="ic">T</span><span class="lb" data-i18n="t_text">Text</span></button>
+  <button class="tool" data-sheet="effects"><span class="ic">✨</span><span class="lb" data-i18n="t_effects">Effects</span></button>
+  <button class="tool" data-sheet="ratio"><span class="ic">▣</span><span class="lb" data-i18n="t_ratio">Ratio</span></button>
+  <button class="tool" data-sheet="templates"><span class="ic">⧉</span><span class="lb" data-i18n="t_templates">Templates</span></button>
 </nav>
 
 <div class="sheet" id="sheet-media">
-  <h3>➕ Media <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_media">➕ Media</span> <button data-close>Done ✓</button></h3>
   <div class="drop" id="drop">＋ Tap to add videos, images &amp; music</div>
   <input type="file" id="fileIn" accept="video/*,image/*,audio/*" multiple hidden>
   <div class="media-list" id="mediaList"></div>
   <div class="sub">No files handy?</div>
-  <button class="gold bigbtn" id="demoBtn2">▶ Load the demo project (clip + music + template)</button>
-  <div class="sub">🎁 Built-in media pack (ours — free to use in your videos)</div>
+  <button class="gold bigbtn" id="demoBtn2" data-i18n="demo_btn">▶ Load the demo project (clip + music + template)</button>
+  <div class="sub" data-i18n="sub_stock">🎁 Built-in media pack (ours — free to use in your videos)</div>
   <div class="row" style="flex-wrap:wrap;gap:7px">
     <button data-stock="stock-neon.jpg" style="flex:1 1 30%">🌃 Neon City</button>
     <button data-stock="stock-ocean.jpg" style="flex:1 1 30%">🌊 Ocean Air</button>
     <button data-stock="stock-luxcar.jpg" style="flex:1 1 30%">🏎 Lux Car</button>
   </div>
   <p class="hint">Original CineVault stock images — tap to add one to your timeline. Plus the demo clip &amp; music bed above.</p>
-  <div class="sub">🎬 Auto Video Maker</div>
+  <div class="sub" data-i18n="sub_auto">🎬 Auto Video Maker</div>
   <input type="text" id="avTitle" placeholder="Your video title…" style="width:100%">
   <div class="row" style="margin-top:7px">
     <div class="field"><label>Theme</label><select id="avTheme" style="width:100%">
@@ -225,15 +228,15 @@ body.pro .logo span{color:#4d8dff}
       <option value="travel">✈️ Travel</option>
       <option value="vlog">📱 Vlog</option>
     </select></div>
-    <button class="gold" id="avGo" style="flex:1">🎬 Build my video</button>
+    <button class="gold" id="avGo" style="flex:1" data-i18n="btn_build">🎬 Build my video</button>
   </div>
   <p class="hint">Builds a complete 9:16 video automatically — scenes, animated zoom, your title, music. Replaces the current timeline (you can undo).</p>
-  <div class="sub">🤖 AI Video from text (cloud · beta)</div>
+  <div class="sub" data-i18n="sub_aivideo">🤖 AI Video from text (cloud · beta)</div>
   <input type="password" id="aiTok" placeholder="Your free HuggingFace token (hf_…)" style="width:100%">
   <input type="text" id="aiPrompt" placeholder="Describe the clip: waves crashing on a beach at sunset…" style="width:100%;margin-top:7px">
-  <button class="bigbtn" id="aiGen" style="width:100%;margin-top:7px">🤖 Generate clip</button>
+  <button class="bigbtn" id="aiGen" style="width:100%;margin-top:7px" data-i18n="btn_gen_clip">🤖 Generate clip</button>
   <p class="hint" id="aiState">True text-to-video needs cloud GPUs, so this uses YOUR OWN free token from huggingface.co (Settings → Access Tokens → Read). The clip is generated there and added to your timeline. Your token never leaves this browser except to HuggingFace.</p>
-  <div class="sub">💾 Projects on this device</div>
+  <div class="sub" data-i18n="sub_projects">💾 Projects on this device</div>
   <div class="row"><span id="slotLbl1" style="flex:1;font-size:13px;color:var(--mut)">Slot 1 — empty</span><button data-slot-save="1">Save</button><button data-slot-load="1">Load</button></div>
   <div class="row" style="margin-top:7px"><span id="slotLbl2" style="flex:1;font-size:13px;color:var(--mut)">Slot 2 — empty</span><button data-slot-save="2">Save</button><button data-slot-load="2">Load</button></div>
   <div class="row" style="margin-top:7px"><span id="slotLbl3" style="flex:1;font-size:13px;color:var(--mut)">Slot 3 — empty</span><button data-slot-save="3">Save</button><button data-slot-load="3">Load</button></div>
@@ -246,17 +249,17 @@ body.pro .logo span{color:#4d8dff}
 </div>
 
 <div class="sheet" id="sheet-edit">
-  <h3>✂️ Edit clip <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_edit">✂️ Edit clip</span> <button data-close>Done ✓</button></h3>
   <div id="segPanel"><p class="hint">Tap a clip on the timeline first.</p></div>
   <div class="sub">Playhead actions</div>
   <div class="row">
-    <button id="splitBtn">✂ Split</button>
-    <button id="dupBtn">⧉ Duplicate</button>
-    <button class="danger" id="delSegBtn">🗑 Delete</button>
+    <button id="splitBtn" data-i18n="qb_split">✂ Split</button>
+    <button id="dupBtn" data-i18n="qb_dup">⧉ Duplicate</button>
+    <button class="danger" id="delSegBtn" data-i18n="qb_del">🗑 Delete</button>
   </div>
   <div class="row" style="margin-top:9px">
-    <button id="freezeBtn">❄ Freeze frame</button>
-    <button id="revBtn">⏪ Reverse clip</button>
+    <button id="freezeBtn" data-i18n="btn_freeze">❄ Freeze frame</button>
+    <button id="revBtn" data-i18n="btn_reverse">⏪ Reverse clip</button>
   </div>
   <p class="hint" style="margin-top:7px">Freeze: pause playback on the frame you want, then tap Freeze. Reverse creates a reversed copy of the selected clip (on-device, 60s max).</p>
   <div class="sub">Overlay (picture-in-picture)</div>
@@ -264,7 +267,7 @@ body.pro .logo span{color:#4d8dff}
 </div>
 
 <div class="sheet" id="sheet-audio">
-  <h3>🎵 Audio <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_audio">🎵 Audio</span> <button data-close>Done ✓</button></h3>
   <div class="field"><label>Background music (add an audio file in Media)</label><select id="musicSel" style="width:100%"><option value="">— none —</option></select></div>
   <div class="slider-row"><span>Music vol</span><input type="range" id="musicVol" min="0" max="100" value="35"><output id="musicVolO">35</output></div>
   <div class="slider-row"><span>Video vol</span><input type="range" id="videoVol" min="0" max="100" value="100"><output id="videoVolO">100</output></div>
@@ -281,7 +284,7 @@ body.pro .logo span{color:#4d8dff}
   <div class="field"><label>Track 2 starts at (seconds into the video)</label><input type="number" id="music2Off" min="0" max="600" step="0.5" value="0" style="width:100%"></div>
   <div class="row"><button id="duckBtn" style="width:100%">🦆 Auto-duck music under speech: OFF</button></div>
   <p class="hint">When ON, the music dips automatically whenever the clip's own audio (voice) is loud, and comes back in the pauses.</p>
-  <div class="sub">🎵 AI Music Maker — composes original music on your device</div>
+  <div class="sub" data-i18n="sub_music">🎵 AI Music Maker — composes original music on your device</div>
   <div class="row">
     <div class="field"><label>Style</label><select id="mmStyle" style="width:100%">
       <option value="lofi">🎧 Lo-Fi Chill</option>
@@ -295,16 +298,19 @@ body.pro .logo span{color:#4d8dff}
       <option value="16" selected>Full (~30–50s)</option>
     </select></div>
   </div>
-  <button class="bigbtn gold" id="mmGen" style="width:100%">🎵 Generate my song</button>
+  <button class="bigbtn gold" id="mmGen" style="width:100%" data-i18n="btn_gen_song">🎵 Generate my song</button>
   <p class="hint" id="mmState">100% original, composed in your browser — yours to use anywhere, no royalties.</p>
-  <div class="sub">🥁 Beat sync</div>
+  <div class="sub" data-i18n="sub_vo">🎙 Voice-over — record your voice</div>
+  <div class="row"><button id="voRec" style="flex:1">⏺ Record</button><button id="voStop" style="flex:1" disabled>⏹ Stop</button></div>
+  <p class="hint" id="voState">Record a voice-over and it lands in your library — then set it as Track 2 to narrate over your video.</p>
+  <div class="sub" data-i18n="sub_beats">🥁 Beat sync</div>
   <button class="bigbtn" id="beatBtn" style="width:100%">🥁 Detect beats in Track 1 music</button>
   <p class="hint" id="beatState">Beats appear as ticks under the timeline.</p>
   <button class="bigbtn" id="beatSplitBtn" style="width:100%">✂ Split selected clip at the beats</button>
 </div>
 
 <div class="sheet" id="sheet-text">
-  <h3>T Text &amp; stickers <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_text">T Text &amp; stickers</span> <button data-close>Done ✓</button></h3>
   <div class="field"><label>New text</label><input id="newText" placeholder="Type a title or caption…" style="width:100%"></div>
   <button class="gold bigbtn" id="addTextBtn">＋ Add text at playhead</button>
   <div class="sub">Stickers — tap to add</div>
@@ -341,7 +347,7 @@ body.pro .logo span{color:#4d8dff}
 </div>
 
 <div class="sheet" id="sheet-effects">
-  <h3>✨ Effects &amp; filters <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_effects">✨ Effects &amp; filters</span> <button data-close>Done ✓</button></h3>
   <div class="preset-grid" id="presets"></div>
   <div class="sub">Adjust</div>
   <div class="slider-row"><span>Brightness</span><input type="range" id="adjB" min="50" max="150" value="100"><output id="adjBO">100</output></div>
@@ -352,20 +358,20 @@ body.pro .logo span{color:#4d8dff}
   <div class="slider-row"><span>Tint</span><input type="range" id="pcTint" min="-100" max="100" value="0"><output id="pcTintO">0</output></div>
   <div class="slider-row"><span>Vibrance</span><input type="range" id="pcVib" min="-100" max="100" value="0"><output id="pcVibO">0</output></div>
   <div class="slider-row"><span>Faded blacks</span><input type="range" id="pcFade" min="0" max="100" value="0"><output id="pcFadeO">0</output></div>
-  <div class="sub">Looks — one-tap pro combos</div>
+  <div class="sub" data-i18n="sub_looks">Looks — one-tap pro combos</div>
   <div class="row" id="looksRow" style="flex-wrap:wrap;gap:7px"></div>
-  <div class="sub">Post FX — whole video</div>
+  <div class="sub" data-i18n="sub_postfx">Post FX — whole video</div>
   <div class="slider-row"><span>Vignette</span><input type="range" id="fxVig" min="0" max="100" value="0"><output id="fxVigO">0</output></div>
   <div class="slider-row"><span>Film grain</span><input type="range" id="fxGrain" min="0" max="100" value="0"><output id="fxGrainO">0</output></div>
   <div class="slider-row"><span>Glow</span><input type="range" id="fxGlow" min="0" max="100" value="0"><output id="fxGlowO">0</output></div>
   <div class="slider-row"><span>Light leak</span><input type="range" id="fxLeak" min="0" max="100" value="0"><output id="fxLeakO">0</output></div>
-  <div class="sub">Pro Color — split tone (Lumetri-style)</div>
+  <div class="sub" data-i18n="sub_procolor">Pro Color — split tone (Lumetri-style)</div>
   <div class="slider-row"><span>Split tone</span><input type="range" id="fxSt" min="0" max="100" value="0"><output id="fxStO">0</output></div>
   <div class="row" style="align-items:center;gap:14px"><span style="font-size:12.5px;color:var(--mut)">Shadows</span><input type="color" id="fxStSh" value="#20306e" style="width:52px;height:36px"><span style="font-size:12.5px;color:var(--mut)">Highlights</span><input type="color" id="fxStHi" value="#ffb36b" style="width:52px;height:36px"></div>
   <div class="row"><button id="fxGlitch">📺 Glitch bursts: OFF</button></div>
-  <div class="sub">Filter intensity</div>
+  <div class="sub" data-i18n="sub_intensity">Filter intensity</div>
   <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
-  <div class="sub">Transition between clips</div>
+  <div class="sub" data-i18n="sub_trans">Transition between clips</div>
   <select id="transSel" style="width:100%">
     <option value="none">None</option>
     <option value="cross">Crossfade (dissolve)</option>
@@ -389,7 +395,7 @@ body.pro .logo span{color:#4d8dff}
 </div>
 
 <div class="sheet" id="sheet-ratio">
-  <h3>▣ Canvas ratio <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_ratio">▣ Canvas ratio</span> <button data-close>Done ✓</button></h3>
   <div class="field"><label>Ratio</label>
   <select id="ratioSel" style="width:100%">
     <option value="16:9">16:9 · YouTube</option>
@@ -420,14 +426,14 @@ body.pro .logo span{color:#4d8dff}
 </div>
 
 <div class="sheet" id="sheet-templates">
-  <h3>⧉ Templates <button data-close>Done ✓</button></h3>
+  <h3><span data-i18n="s_templates">⧉ Templates</span> <button data-close>Done ✓</button></h3>
   <p class="hint" style="margin-bottom:11px">One tap sets the ratio, filter, transition and ready-to-edit texts. Then just change the words.</p>
   <div class="tplwrap" id="tplGrid"></div>
   <div class="sub">Start instantly</div>
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v16 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v17 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

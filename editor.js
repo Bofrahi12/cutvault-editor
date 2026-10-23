@@ -590,6 +590,12 @@ function finishExportBlob(){
   <button id="mp4Btn" class="gold">🎬 Convert to MP4</button></div>
   <p class="hint" id="mp4State" style="margin-top:7px">MP4 conversion runs on your device too (first time downloads a ~31 MB converter — needs internet once).</p>
   <div id="mp4Done"></div></div>`;
+ const sb=document.createElement("button"); sb.className="bigbtn"; sb.style.cssText="width:100%;margin-top:9px"; sb.textContent="📤 Share video";
+ sb.onclick=async()=>{ try{ const f=new File([blob],expFileName()+".webm",{type:"video/webm"});
+   if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],title:"CutVault video"});
+   else if(navigator.share)await navigator.share({title:"CutVault video"});
+   else flashNow("Sharing isn't supported in this browser — use Download instead") }catch(e){} };
+ $("#expDone").querySelector(".text-item").appendChild(sb);
  recorder=null;
 }
 
@@ -967,6 +973,27 @@ document.addEventListener("keydown",e=>{
  else if(e.code==="KeyS"){const b=$("#splitBtn"); if(b)b.click()}
  else if(e.code==="Delete"||e.code==="Backspace"){const b=$("#spDel"); if(b&&selSeg){e.preventDefault();b.click()}}
 });
+/* ----- Interface language (EN / FR / AR / ES) ----- */
+const I18N={
+fr:{t_media:"Médias",t_edit:"Modifier",t_audio:"Audio",t_text:"Texte",t_effects:"Effets",t_ratio:"Format",t_templates:"Modèles",s_media:"➕ Médias",s_edit:"✂️ Modifier le clip",s_audio:"🎵 Audio",s_text:"T Texte & autocollants",s_effects:"✨ Effets & filtres",s_ratio:"▣ Format de la toile",s_templates:"⧉ Modèles",export:"⬇ Exporter",hc_title:"🎬 Que veux-tu créer ?",hc_add:"➕ Ajouter ma vidéo ou photo",hc_auto:"🤖 Crée une vidéo pour moi",hc_demo:"▶ Essayer le projet démo",hc_note:"Sans inscription · tes fichiers ne quittent jamais cet appareil",qb_split:"✂ Diviser",qb_dup:"⧉ Dupliquer",qb_speed:"🐢 Vitesse",qb_color:"🎨 Couleur",qb_del:"🗑 Supprimer",btn_freeze:"❄ Figer l'image",btn_reverse:"⏪ Inverser le clip",demo_btn:"▶ Charger le projet démo (clip + musique + modèle)",sub_projects:"💾 Projets sur cet appareil",sub_stock:"🎁 Pack média intégré (à nous — libre d'utilisation)",sub_auto:"🎬 Créateur vidéo auto",sub_aivideo:"🤖 Vidéo IA depuis un texte (cloud · bêta)",btn_build:"🎬 Créer ma vidéo",btn_gen_clip:"🤖 Générer le clip",sub_music:"🎵 Créateur de musique IA — compose sur ton appareil",btn_gen_song:"🎵 Générer ma chanson",sub_vo:"🎙 Voix off — enregistre ta voix",sub_beats:"🥁 Synchro au rythme",sub_looks:"Looks — combos pro en un toucher",sub_postfx:"Post FX — vidéo entière",sub_procolor:"Couleur Pro — tons séparés (style Lumetri)",sub_intensity:"Intensité du filtre",sub_trans:"Transition entre clips"},
+ar:{t_media:"الوسائط",t_edit:"تحرير",t_audio:"الصوت",t_text:"النص",t_effects:"المؤثرات",t_ratio:"الأبعاد",t_templates:"القوالب",s_media:"➕ الوسائط",s_edit:"✂️ تحرير المقطع",s_audio:"🎵 الصوت",s_text:"T النص والملصقات",s_effects:"✨ المؤثرات والفلاتر",s_ratio:"▣ أبعاد اللوحة",s_templates:"⧉ القوالب",export:"⬇ تصدير",hc_title:"🎬 شنو بغيتي تصاوب؟",hc_add:"➕ زيد الفيديو أو الصورة ديالك",hc_auto:"🤖 صاوب ليا فيديو بوحدك",hc_demo:"▶ جرّب مشروع الديمو",hc_note:"بلا تسجيل · ملفاتك ما كتخرجش من هاد الجهاز",qb_split:"✂ قصّ",qb_dup:"⧉ كرر",qb_speed:"🐢 السرعة",qb_color:"🎨 اللون",qb_del:"🗑 حذف",btn_freeze:"❄ تجميد الإطار",btn_reverse:"⏪ عكس المقطع",demo_btn:"▶ حمّل مشروع الديمو (مقطع + موسيقى + قالب)",sub_projects:"💾 المشاريع في هاد الجهاز",sub_stock:"🎁 حزمة وسائط مدمجة (ديالنا — مجانية للاستعمال)",sub_auto:"🎬 صانع الفيديو التلقائي",sub_aivideo:"🤖 فيديو بالذكاء الاصطناعي من نص (سحابة · تجريبي)",btn_build:"🎬 صاوب الفيديو ديالي",btn_gen_clip:"🤖 ولّد المقطع",sub_music:"🎵 صانع الموسيقى بالذكاء الاصطناعي — كيألف على جهازك",btn_gen_song:"🎵 ولّد الأغنية ديالي",sub_vo:"🎙 التعليق الصوتي — سجّل صوتك",sub_beats:"🥁 مزامنة الإيقاع",sub_looks:"Looks — تركيبات برو بلمسة وحدة",sub_postfx:"Post FX — الفيديو كامل",sub_procolor:"اللون الاحترافي — Split tone (بأسلوب Lumetri)",sub_intensity:"قوة الفلتر",sub_trans:"الانتقال بين المقاطع"},
+es:{t_media:"Medios",t_edit:"Editar",t_audio:"Audio",t_text:"Texto",t_effects:"Efectos",t_ratio:"Formato",t_templates:"Plantillas",s_media:"➕ Medios",s_edit:"✂️ Editar clip",s_audio:"🎵 Audio",s_text:"T Texto y pegatinas",s_effects:"✨ Efectos y filtros",s_ratio:"▣ Formato del lienzo",s_templates:"⧉ Plantillas",export:"⬇ Exportar",hc_title:"🎬 ¿Qué quieres crear?",hc_add:"➕ Añadir mi vídeo o foto",hc_auto:"🤖 Crea un vídeo por mí",hc_demo:"▶ Probar el proyecto demo",hc_note:"Sin registro · tus archivos nunca salen de este dispositivo",qb_split:"✂ Dividir",qb_dup:"⧉ Duplicar",qb_speed:"🐢 Velocidad",qb_color:"🎨 Color",qb_del:"🗑 Eliminar",btn_freeze:"❄ Congelar fotograma",btn_reverse:"⏪ Invertir clip",demo_btn:"▶ Cargar el proyecto demo (clip + música + plantilla)",sub_projects:"💾 Proyectos en este dispositivo",sub_stock:"🎁 Pack multimedia integrado (nuestro, uso libre)",sub_auto:"🎬 Creador automático de vídeos",sub_aivideo:"🤖 Vídeo IA desde texto (nube · beta)",btn_build:"🎬 Crear mi vídeo",btn_gen_clip:"🤖 Generar clip",sub_music:"🎵 Música IA — compone en tu dispositivo",btn_gen_song:"🎵 Generar mi canción",sub_vo:"🎙 Voz en off — graba tu voz",sub_beats:"🥁 Sincronía con el ritmo",sub_looks:"Looks — combos pro en un toque",sub_postfx:"Post FX — vídeo completo",sub_procolor:"Color Pro — tonos divididos (estilo Lumetri)",sub_intensity:"Intensidad del filtro",sub_trans:"Transición entre clips"}};
+function applyLang(l){
+ document.querySelectorAll("[data-i18n]").forEach(el=>{
+  if(el.dataset.en==null)el.dataset.en=el.textContent;
+  const k=el.dataset.i18n;
+  el.textContent=(l==="en"||!I18N[l]||!I18N[l][k])?el.dataset.en:I18N[l][k] });
+ const rtl=l==="ar";
+ document.documentElement.dir=rtl?"rtl":"ltr";
+ document.body.classList.toggle("rtl",rtl);
+ const sel=$("#langSel"); if(sel)sel.value=l;
+ localStorage.setItem("cv_lang",l);
+}
+(()=>{ const sel=$("#langSel"); if(!sel)return;
+ sel.onchange=()=>applyLang(sel.value);
+ const saved=localStorage.getItem("cv_lang")||"en";
+ if(saved!=="en")applyLang(saved); else sel.value="en";
+})();
 /* ----- Home card + quick actions (Phase L: ease first) ----- */
 function openSheetByName(name){
  closeSheets();
@@ -1057,6 +1084,22 @@ $("#avGo").onclick=async()=>{ const btn=$("#avGo"); btn.disabled=true; btn.textC
   }catch(e){ st.textContent="Could not reach HuggingFace from this browser — check your connection and retry." }
   btn.disabled=false };
 })();
+/* ----- Voice-over recording (mic → library) ----- */
+let voRec=null, voChunks=[], voStream=null;
+$("#voRec").onclick=async()=>{ const st=$("#voState");
+ try{ voStream=await navigator.mediaDevices.getUserMedia({audio:true}) }
+ catch(e){ st.textContent="Microphone blocked — allow mic access in your browser to record a voice-over."; return }
+ voChunks=[]; voRec=new MediaRecorder(voStream);
+ voRec.ondataavailable=e=>{ if(e.data&&e.data.size)voChunks.push(e.data) };
+ voRec.onstop=()=>{ if(voStream)voStream.getTracks().forEach(t=>t.stop());
+  const blob=new Blob(voChunks,{type:voRec.mimeType||"audio/webm"});
+  addFiles([new File([blob],"voiceover.webm",{type:blob.type||"audio/webm"})]);
+  st.textContent="✓ Voice-over added to your library — pick it as Track 2 above to narrate over the video.";
+  flashNow("Voice-over recorded ✓");
+  $("#voRec").disabled=false; $("#voStop").disabled=true };
+ voRec.start(); $("#voRec").disabled=true; $("#voStop").disabled=false;
+ st.textContent="🔴 Recording… speak now, tap Stop when you're done." };
+$("#voStop").onclick=()=>{ if(voRec&&voRec.state!=="inactive")voRec.stop() };
 /* ----- AI Music Maker: generative composition, rendered on-device ----- */
 const MM_STYLES={
  lofi:{bpm:78,root:45,mode:[0,3,5,7,10],prog:[[0,3,7,10],[8,0,3,7],[3,7,10,2],[10,2,5,8]],wave:"triangle",bassWave:"sine",drums:"lofi",melGain:.20},

@@ -1,4 +1,4 @@
-const CACHE = "cutvault-v16";
+const CACHE = "cutvault-v17";
 const CORE = ["./", "./index.html", "./editor.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
   "./assets/demo.mp4", "./assets/demo-music.mp3"];
