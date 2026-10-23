@@ -117,6 +117,15 @@ a{color:var(--gold2)}
 .sheet{padding-bottom:30px}
 .slider-row{padding:5px 0}
 button{min-height:42px}
+/* Phase M — pro touches */
+#lvlWrap{width:56px;height:9px;background:#1a1d24;border:1px solid var(--line);border-radius:5px;overflow:hidden;align-self:center}
+#lvlFill{display:block;height:100%;width:0%;background:linear-gradient(90deg,#37d67a 55%,#f5cd63 80%,#ef4444);transition:width .09s linear}
+#tlRuler{position:relative;height:15px;margin-bottom:4px;display:none}
+#tlRuler i{position:absolute;top:0;width:1px;height:6px;background:#3a4152}
+#tlRuler b{position:absolute;top:4px;font-size:9px;color:var(--mut);font-weight:600;transform:translateX(2px)}
+body.pro{--gold:#4d8dff;--gold2:#7db1ff}
+body.pro .sheet,body.pro .timeline{background:#14161c}
+body.pro .logo span{color:#4d8dff}
 </style>
 </head>
 <body>
@@ -127,6 +136,7 @@ button{min-height:42px}
     <div class="tagline" id="saveState" style="color:var(--gold2)"></div>
   </div>
   <div class="sp"></div>
+  <button id="themeBtn" title="Toggle pro (Premiere-style) theme">🎨</button>
   <button id="undoBtn" title="Undo">↩</button>
   <button id="redoBtn" title="Redo">↪</button>
   <button id="installBtn" style="display:none">📲 Install app</button>
@@ -155,6 +165,7 @@ button{min-height:42px}
     <button id="restartBtn" title="Back to start" style="min-height:44px">⏮</button>
     <button id="frameBtn" title="Save current frame as a PNG image" style="min-height:44px">📸</button>
     <div class="time"><b id="tCur">0:00.0</b> / <span id="tDur">0:00.0</span></div>
+    <div id="lvlWrap" title="Audio level"><i id="lvlFill"></i></div>
     <span id="nowPlaying">Tap “Media +” below, or open Templates → Demo</span>
   </div>
   <div class="timeline-sec">
@@ -164,7 +175,7 @@ button{min-height:42px}
       <button id="tlZoomOut" style="min-height:32px;padding:4px 11px">−</button>
       <button id="tlZoomIn" style="min-height:32px;padding:4px 11px">＋</button>
     </div>
-    <div class="timeline"><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
+    <div class="timeline"><div id="tlRuler"></div><div class="tl-track" id="tlTrack"><div class="tl-empty">Your clips will appear here…</div></div></div>
     <div id="tlBeats" style="position:relative;height:10px;margin-top:2px;display:none"></div>
     <div class="timeline" id="ovTrackWrap" style="margin-top:7px;display:none"><div style="font-size:10px;color:var(--mut);font-weight:700;letter-spacing:.06em;margin-bottom:5px">OVERLAY · PICTURE-IN-PICTURE</div><div class="tl-track" id="tlOverlay" style="min-height:44px"></div></div>
     <div id="quickBar" style="display:none">
@@ -348,6 +359,9 @@ button{min-height:42px}
   <div class="slider-row"><span>Film grain</span><input type="range" id="fxGrain" min="0" max="100" value="0"><output id="fxGrainO">0</output></div>
   <div class="slider-row"><span>Glow</span><input type="range" id="fxGlow" min="0" max="100" value="0"><output id="fxGlowO">0</output></div>
   <div class="slider-row"><span>Light leak</span><input type="range" id="fxLeak" min="0" max="100" value="0"><output id="fxLeakO">0</output></div>
+  <div class="sub">Pro Color — split tone (Lumetri-style)</div>
+  <div class="slider-row"><span>Split tone</span><input type="range" id="fxSt" min="0" max="100" value="0"><output id="fxStO">0</output></div>
+  <div class="row" style="align-items:center;gap:14px"><span style="font-size:12.5px;color:var(--mut)">Shadows</span><input type="color" id="fxStSh" value="#20306e" style="width:52px;height:36px"><span style="font-size:12.5px;color:var(--mut)">Highlights</span><input type="color" id="fxStHi" value="#ffb36b" style="width:52px;height:36px"></div>
   <div class="row"><button id="fxGlitch">📺 Glitch bursts: OFF</button></div>
   <div class="sub">Filter intensity</div>
   <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
@@ -369,6 +383,8 @@ button{min-height:42px}
     <option value="zoomout">Zoom out settle</option>
     <option value="flip">Flip in</option>
     <option value="bounce">Bounce in</option>
+    <option value="whip">Whip pan (pro)</option>
+    <option value="zoomblur">Zoom blur (pro)</option>
   </select>
 </div>
 
@@ -411,7 +427,7 @@ button{min-height:42px}
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v15 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v16 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

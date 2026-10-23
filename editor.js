@@ -126,6 +126,11 @@ function renderTimeline(){
 function refreshChrome(){
  const qb=$("#quickBar"); if(qb)qb.style.display=(selSeg&&segments.length)?"flex":"none";
  const hc=$("#homeCard"); if(hc)hc.style.display=segments.length?"none":"flex";
+ const ru=$("#tlRuler"); if(ru){ const total=progDur();
+  if(total>0.5){ ru.style.display="block"; const step=total>90?10:total>40?5:2; let h="";
+   for(let t=0;t<=total;t+=1){ const f=(t/total*100).toFixed(2);
+    h+=`<i style="left:${f}%"></i>`; if(t%step===0)h+=`<b style="left:${f}%">${fmt(t)}</b>` }
+   ru.innerHTML=h } else ru.style.display="none" }
 }
 function renderTextTrack(){
  const el=$("#tlTexts");
@@ -237,11 +242,14 @@ if(duckBtnEl)duckBtnEl.onclick=()=>{duckOn=!duckOn;duckBtnEl.textContent=duckOn?
  el.oninput=e=>{pcCol[k]=+e.target.value;$("#"+id+"O").textContent=e.target.value;drawFrame()};
  el.onchange=()=>{pushHistory();markDirty()};
 });
-[["fxVig","vig"],["fxGrain","grain"],["fxGlow","glow"],["fxLeak","leak"]].forEach(([id,k])=>{
+[["fxVig","vig"],["fxGrain","grain"],["fxGlow","glow"],["fxLeak","leak"],["fxSt","st"]].forEach(([id,k])=>{
  const el=$("#"+id); if(!el)return;
  el.oninput=e=>{postfx[k]=+e.target.value/100;$("#"+id+"O").textContent=e.target.value;drawFrame()};
  el.onchange=()=>{pushHistory();markDirty()};
 });
+[["fxStSh","stSh"],["fxStHi","stHi"]].forEach(([id,k])=>{ const el=$("#"+id); if(!el)return;
+ el.oninput=e=>{postfx[k]=e.target.value;drawFrame()};
+ el.onchange=()=>{pushHistory();markDirty()} });
 const fxGl=$("#fxGlitch");
 if(fxGl)fxGl.onclick=()=>{postfx.glitch=!postfx.glitch;fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";drawFrame();pushHistory();markDirty()};
 const LOOKS={
@@ -250,11 +258,18 @@ const LOOKS={
  "🌃 Neon Nights":{preset:"Neon Night",fx:{vig:35,grain:15,glow:60,leak:0,glitch:true}},
  "✨ Clean Commercial":{preset:"Clean Airy",fx:{vig:0,grain:0,glow:15,leak:0,glitch:false}},
  "🌅 Golden Glow":{preset:"Golden Hour",fx:{vig:25,grain:20,glow:45,leak:55,glitch:false}},
- "🖤 Noir Drama":{preset:"Noir",fx:{vig:65,grain:30,glow:0,leak:0,glitch:false}}};
+ "🖤 Noir Drama":{preset:"Noir",fx:{vig:65,grain:30,glow:0,leak:0,glitch:false}},
+ "🎞 Kodak Gold":{preset:"Warm",fx:{vig:20,grain:42,glow:18,leak:25,glitch:false,st:35},stSh:"#2a4d8f",stHi:"#ffb36b"},
+ "🗻 Fuji Eterna":{preset:"Cold",fx:{vig:30,grain:25,glow:0,leak:0,glitch:false,st:40},stSh:"#14424a",stHi:"#ffe9c9"},
+ "🌆 CineStill Night":{preset:"Neon Night",fx:{vig:40,grain:30,glow:55,leak:0,glitch:false,st:45},stSh:"#1b2350",stHi:"#ff5a3c"},
+ "🤍 Portra Soft":{preset:"Pastel",fx:{vig:12,grain:18,glow:30,leak:10,glitch:false,st:22},stSh:"#3a4a6b",stHi:"#ffd9a0"}};
 function applyLook(name){ const L=LOOKS[name]; if(!L)return;
  setPreset(L.preset);
  [["fxVig","vig"],["fxGrain","grain"],["fxGlow","glow"],["fxLeak","leak"]].forEach(([id,k])=>{
   postfx[k]=L.fx[k]/100; const el=$("#"+id); if(el){el.value=L.fx[k]; $("#"+id+"O").textContent=L.fx[k]} });
+ if(L.fx.st!=null){ postfx.st=L.fx.st/100; const el=$("#fxSt"); if(el){el.value=L.fx.st; $("#fxStO").textContent=L.fx.st} }
+ if(L.stSh){ postfx.stSh=L.stSh; const el=$("#fxStSh"); if(el)el.value=L.stSh }
+ if(L.stHi){ postfx.stHi=L.stHi; const el=$("#fxStHi"); if(el)el.value=L.stHi }
  postfx.glitch=L.fx.glitch; if(fxGl)fxGl.textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF";
  drawFrame(); pushHistory(); markDirty(); flashNow("Look applied: "+name) }
 (()=>{ const row=$("#looksRow"); if(!row)return;
@@ -346,11 +361,11 @@ function drawFrame(){
     else{
     if(fit==="fit"){ctx.save();ctx.filter="blur(28px) brightness(0.55)";const sc=Math.max(W/sw,H/sh);ctx.drawImage(src,(W-sw*sc)/2,(H-sh*sc)/2,sw*sc,sh*sc);ctx.restore()}
     const tp=Math.max(0,Math.min(1,lt/0.45));
-    const blurPx=curTransition==="blur"?Math.round(16*(1-tp)):0;
-    const slideX=curTransition==="slide"?(1-tp)*W*0.92:0;
+    const blurPx=curTransition==="blur"?Math.round(16*(1-tp)):curTransition==="whip"?Math.round(15*Math.sin(tp*Math.PI)):0;
+    const slideX=curTransition==="slide"?(1-tp)*W*0.92:curTransition==="whip"?(1-Math.pow(tp,0.55))*W:0;
     const slideYv=curTransition==="slideup"?(1-tp)*H*0.92:0;
     const spinA=curTransition==="spin"?-0.16*(1-tp):0;
-    const spinS=curTransition==="spin"?(0.9+0.1*tp):1;
+    const spinS=curTransition==="spin"?(0.9+0.1*tp):curTransition==="zoomblur"?(1+0.15*Math.sin(tp*Math.PI)):1;
     const shk=curTransition==="shake"&&lt<0.32?1:0;
     const shX=shk?Math.sin(lt*310)*9*(1-lt/0.32):0, shY=shk?Math.cos(lt*270)*7*(1-lt/0.32):0;
     const clipped=(curTransition==="wipe"||curTransition==="iris");
@@ -394,6 +409,8 @@ function drawFrame(){
     if(curTransition==="flash"&&lt<0.28){ctx.fillStyle=`rgba(255,255,255,${(0.85*(1-lt/0.28)).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
     if(curTransition==="fade"&&lt<0.45){ctx.fillStyle=`rgba(0,0,0,${(1-lt/0.45).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
     if(curTransition==="cross"&&prevFrame&&lt<0.5&&prevFrame.width===W){ctx.save();ctx.globalAlpha=1-lt/0.5;ctx.drawImage(prevFrame,0,0,W,H);ctx.restore()}
+    if(curTransition==="whip"&&prevFrame&&tp<1&&prevFrame.width===W){ctx.save();ctx.drawImage(prevFrame,-Math.pow(tp,0.55)*W,0,W,H);ctx.restore()}
+    if(curTransition==="zoomblur"&&prevFrame&&tp<1&&prevFrame.width===W){ctx.save();ctx.globalAlpha=(1-tp)*0.85;const zw=W*(1+0.35*(1-tp)),zh=H*(1+0.35*(1-tp));ctx.drawImage(prevFrame,(W-zw)/2,(H-zh)/2,zw,zh);ctx.restore()}
    }
   }
  }
@@ -442,14 +459,14 @@ function drawFrame(){
  if(letterbox){ctx.fillStyle="#000";ctx.fillRect(0,0,W,Math.round(H*0.11));ctx.fillRect(0,Math.round(H*0.89),W,Math.round(H*0.11))}
 }
 /* ----- post FX (whole-video layer, drawn after clips, before text) ----- */
-let postfx={vig:0,grain:0,glow:0,leak:0,glitch:false};
+let postfx={vig:0,grain:0,glow:0,leak:0,glitch:false,st:0,stSh:"#20306e",stHi:"#ffb36b"};
 const noiseCvs=document.createElement("canvas"); noiseCvs.width=noiseCvs.height=256;
 { const nx=noiseCvs.getContext("2d"); const im=nx.createImageData(256,256);
   for(let i=0;i<im.data.length;i+=4){const v=(Math.random()*255)|0;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255}
   nx.putImageData(im,0,0) }
 const fxCvs=document.createElement("canvas"), fxCtx=fxCvs.getContext("2d");
 function applyPostFX(){
- const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch)return;
+ const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch&&!F.st)return;
  const W=cv.width,H=cv.height;
  if(F.glow>0){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H);
   fxCtx.filter=`blur(${Math.max(2,Math.round(14*F.glow))}px)`; fxCtx.drawImage(cv,0,0); fxCtx.filter="none";
@@ -465,6 +482,9 @@ function applyPostFX(){
  if(F.grain>0){ ctx.save(); ctx.globalAlpha=0.16*F.grain; ctx.globalCompositeOperation="overlay";
   const pat=ctx.createPattern(noiseCvs,"repeat"); ctx.translate(-((Math.random()*256)|0),-((Math.random()*256)|0));
   ctx.fillStyle=pat; ctx.fillRect(0,0,W+256,H+256); ctx.restore() }
+ if(F.st>0){ const hx=(hex,a)=>{const n=parseInt((hex||"#000000").slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
+  ctx.save(); ctx.globalCompositeOperation="overlay"; ctx.fillStyle=hx(F.stSh,0.55*F.st); ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation="soft-light"; ctx.fillStyle=hx(F.stHi,0.85*F.st); ctx.fillRect(0,0,W,H); ctx.restore() }
  if(F.vig>0){ const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.8);
   g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,`rgba(0,0,0,${(0.62*F.vig).toFixed(3)})`);
   ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
@@ -496,6 +516,10 @@ function loop(){
    duckCur+=(dk-duckCur)*0.12;
    musGain.gain.value=($("#musicVol").value/100)*Math.max(0,Math.min(1,mf))*duckCur }
   if(vidGain){const cs=segments[curSeg];vidGain.gain.value=($("#videoVol").value/100)*((cs&&cs.vol!=null)?cs.vol/100:1)}
+  const lf=$("#lvlFill");
+  if(lf&&vidAnalyser){ if(!duckBuf||duckBuf.length!==vidAnalyser.frequencyBinCount)duckBuf=new Uint8Array(vidAnalyser.frequencyBinCount);
+   vidAnalyser.getByteTimeDomainData(duckBuf); let sm=0; for(let i=0;i<duckBuf.length;i+=4){const v=(duckBuf[i]-128)/128; sm+=v*v}
+   lf.style.width=Math.min(100,Math.round(Math.sqrt(sm/Math.max(1,duckBuf.length/4))*300))+"%" }
  }
  requestAnimationFrame(loop);
 }
@@ -652,9 +676,25 @@ const TEMPLATES={
  gamingmontage:{ratio:"16:9",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎮 MONTAGE",{start:0,end:Math.min(3,d),size:84,y:13,style:"neon",anim:"pop"}],["Clip it. Ship it.",{start:0,end:d,size:50,y:88,style:"box"}]]},
  streamhighlight:{ratio:"16:9",fit:"fill",preset:"Sharp Pop",trans:"shake",texts:d=>[["🔴 BEST MOMENTS",{start:0,end:Math.min(3,d),size:78,y:12,style:"block",anim:"slide"}],["From the live stream",{start:0,end:d,size:48,y:88,style:"box"}]]},
  musicvideo:{ratio:"16:9",fit:"fill",preset:"Moody",trans:"cross",letter:true,texts:d=>[["🎬 MUSIC VIDEO",{start:0,end:Math.min(3,d),size:76,y:13,style:"thin",anim:"fade"}],["Official video",{start:0,end:d,size:48,y:88,style:"gold"}]]},
- concertlive:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎤 LIVE",{start:0,end:Math.min(3,d),size:88,y:13,style:"grad",anim:"pop"}],["What a night 🔥",{start:0,end:d,size:52,y:87,style:"box"}]]}
+ concertlive:{ratio:"9:16",fit:"fill",preset:"Neon Night",trans:"flash",texts:d=>[["🎤 LIVE",{start:0,end:Math.min(3,d),size:88,y:13,style:"grad",anim:"pop"}],["What a night 🔥",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ ltnews:{ratio:"16:9",fit:"fit",preset:"Sharp Pop",trans:"slideup",texts:d=>[["BREAKING NEWS",{start:0,end:d,size:56,x:16,y:80,style:"double",anim:"slide"}],["Your reporter name · Live",{start:0.2,end:d,size:40,x:16,y:90,style:"box",anim:"fade"}]]},
+ ltsport:{ratio:"16:9",fit:"fit",preset:"Vivid",trans:"whip",texts:d=>[["MATCH DAY",{start:0,end:d,size:60,x:15,y:79,style:"grad",anim:"slide"}],["Team A vs Team B · 20:00",{start:0.2,end:d,size:40,x:15,y:90,style:"box",anim:"fade"}]]},
+ ltdoc:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"cross",texts:d=>[["NAME — TITLE",{start:0,end:d,size:48,x:15,y:81,style:"classic",anim:"fade"}],["Location · Year",{start:0.3,end:d,size:38,x:15,y:90,style:"thin",anim:"fade"}]]},
+ titlecine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["A STORY OF",{start:0,end:Math.min(2.6,d),size:44,y:38,style:"wide",anim:"fade"}],["YOUR TITLE",{start:0.4,end:Math.min(4,d),size:110,y:54,style:"thin",anim:"fade"}]]},
+ titlemin:{ratio:"9:16",fit:"fit",preset:"Fade",trans:"fade",texts:d=>[["your title",{start:0,end:d,size:64,y:46,style:"thin",anim:"fade"}],["a short subtitle line",{start:0.4,end:d,size:40,y:56,style:"classic",anim:"fade"}]]},
+ podcastvid:{ratio:"16:9",fit:"fit",preset:"Warm",trans:"cross",texts:d=>[["🎙 THE PODCAST",{start:0,end:Math.min(3,d),size:72,y:12}],["Ep. 12 — Guest Name",{start:0,end:d,size:44,x:15,y:88,style:"box",anim:"slide"}]]},
+ cryptonews:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"whip",texts:d=>[["BTC UPDATE 📈",{start:0,end:Math.min(3,d),size:84,y:13,style:"grad"}],["Watch before you trade",{start:0,end:d,size:50,y:86,style:"box"}]]},
+ coachpro:{ratio:"9:16",fit:"fill",preset:"Vivid",trans:"zoomblur",texts:d=>[["DAY 1 💪",{start:0,end:Math.min(3,d),size:92,y:13,style:"double"}],["Follow the program 👇",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ salonpro:{ratio:"9:16",fit:"fill",preset:"Pastel",trans:"cross",texts:d=>[["✨ NEW LOOK",{start:0,end:Math.min(3,d),size:84,y:13,style:"gold"}],["Book your chair 💇‍♀️",{start:0,end:d,size:52,y:87,style:"box"}]]},
+ clinicpro:{ratio:"16:9",fit:"fit",preset:"Clean Airy",trans:"fade",texts:d=>[["DR. NAME",{start:0,end:d,size:52,x:15,y:80,anim:"slide"}],["Clinic name · Book online",{start:0.2,end:d,size:38,x:15,y:90,style:"box",anim:"fade"}]]},
+ deliverypro:{ratio:"9:16",fit:"fill",preset:"Vivid",trans:"whip",texts:d=>[["🚀 WE DELIVER",{start:0,end:Math.min(3,d),size:84,y:13,style:"grad"}],["Order in the app 👇",{start:0,end:d,size:54,y:87,style:"box"}]]},
+ coursesales:{ratio:"16:9",fit:"fit",preset:"Golden Hour",trans:"zoomblur",texts:d=>[["THE COMPLETE COURSE",{start:0,end:Math.min(3.5,d),size:74,y:16,style:"gold"}],["-50% this week only",{start:0.5,end:d,size:56,y:84,style:"double",anim:"pop"}]]},
+ weddinglt:{ratio:"16:9",fit:"fit",preset:"Golden Hour",trans:"cross",texts:d=>[["Sara & Omar",{start:0,end:d,size:58,x:15,y:81,style:"cursive",anim:"fade"}],["12 · 10 · 2026 — Tangier",{start:0.3,end:d,size:38,x:15,y:90,style:"thin",anim:"fade"}]]},
+ estatelt:{ratio:"16:9",fit:"fit",preset:"Teal & Orange",trans:"slideup",texts:d=>[["FOR SALE — 120 m²",{start:0,end:d,size:52,x:16,y:80,style:"double",anim:"slide"}],["Marshan · 1 450 000 DH",{start:0.2,end:d,size:40,x:16,y:90,style:"box",anim:"fade"}]]},
+ streampro:{ratio:"16:9",fit:"fill",preset:"Neon Night",trans:"zoomblur",texts:d=>[["🔴 STARTING SOON",{start:0,end:Math.min(3.5,d),size:80,y:44,style:"neon",anim:"pop"}],["@yourchannel",{start:0.3,end:d,size:46,y:88,style:"box"}]]},
+ photog:{ratio:"9:16",fit:"fit",preset:"Cinematic",trans:"cross",texts:d=>[["BEHIND THE LENS 📷",{start:0,end:Math.min(3,d),size:72,y:13,style:"wide"}],["shot on location",{start:0,end:d,size:44,y:87,style:"thin",anim:"fade"}]]}
 };
-const TPL_META={reel:["🎬","Reel Hook"],cine:["🎞","Cinematic"],product:["🛍","Product Ad"],vlog:["📱","Vlog"],estate:["🏠","Real Estate"],quote:["💬","Quote"],news:["📰","Breaking News"],tutorial:["🎓","Tutorial Steps"],beforeafter:["🔀","Before / After"],countdown:["⏱","Countdown"],sale:["🏷","Big Sale"],travel:["✈️","Travel"],food:["🍔","Food"],fitness:["💪","Fitness"],gaming:["🎮","Gaming"],music:["🎵","Music Drop"],birthday:["🎂","Birthday"],business:["💼","Business"],minimal:["◻","Minimal"],podcast:["🎙","Podcast"],wedding:["💍","Wedding"],motivation:["🔥","Motivation"],sports:["⚽","Sports"],tech:["💻","Tech Review"],fashion:["👗","Fashion"],education:["📚","Education"],unboxing:["📦","Unboxing"],storytime:["📖","Story Time"],challenge:["🏆","Challenge"],recap:["⏪","Recap"],teaser:["👀","Teaser"],flashsale:["⚡","Flash Sale"],lyrics:["🎵","Lyrics"],meme:["😂","Meme"],cooking:["👨‍🍳","Cooking"],study:["📚","Study"],weddinginvite:["💍","Wedding Invite"],graduation:["🎓","Graduation"],ramadan:["🌙","Ramadan"],luxuryestate:["🏛","Luxury Estate"],sportnews:["⚽","Sport News"],unboxpro:["📦","Unbox Pro"],travelpro:["✈️","Travel Pro"],newyear:["🎆","New Year"],petfun:["🐶","Pet Fun"],velocity:["⚡","Velocity Edit"],phonk:["💀","Phonk"],anime:["✨","Anime Edit"],y2k:["💿","Y2K"],vhs:["📼","VHS Tape"],film35:["🎞","35mm Film"],luxcar:["🏎","Luxury Car"],nightdrive:["🌃","Night Drive"],gymbeast:["🦁","Beast Mode"],fightcamp:["🥊","Fight Camp"],dancechallenge:["💃","Dance Challenge"],tutorialpro:["📘","Tutorial Pro"],coursepromo:["🎓","Course Promo"],realestatepro:["🎥","Property Film"],hotelpromo:["🏨","Hotel Promo"],restaurantpromo:["🍽","Restaurant"],fashionfilm:["👗","Fashion Film"],beautytips:["💄","Beauty Tips"],barberpro:["💈","Barber Pro"],weddingfilm:["🎞","Wedding Film"],babyshower:["👶","Baby Shower"],travelcine:["🎬","Travel Film"],droneview:["🚁","Drone View"],citytour:["🏙","City Tour"],foodreview:["⭐","Food Review"],asmrfood:["🎧","ASMR Food"],gamingmontage:["🎮","Gaming Montage"],streamhighlight:["🔴","Stream Highlights"],musicvideo:["🎬","Music Video"],concertlive:["🎤","Concert Live"]};
+const TPL_META={reel:["🎬","Reel Hook"],cine:["🎞","Cinematic"],product:["🛍","Product Ad"],vlog:["📱","Vlog"],estate:["🏠","Real Estate"],quote:["💬","Quote"],news:["📰","Breaking News"],tutorial:["🎓","Tutorial Steps"],beforeafter:["🔀","Before / After"],countdown:["⏱","Countdown"],sale:["🏷","Big Sale"],travel:["✈️","Travel"],food:["🍔","Food"],fitness:["💪","Fitness"],gaming:["🎮","Gaming"],music:["🎵","Music Drop"],birthday:["🎂","Birthday"],business:["💼","Business"],minimal:["◻","Minimal"],podcast:["🎙","Podcast"],wedding:["💍","Wedding"],motivation:["🔥","Motivation"],sports:["⚽","Sports"],tech:["💻","Tech Review"],fashion:["👗","Fashion"],education:["📚","Education"],unboxing:["📦","Unboxing"],storytime:["📖","Story Time"],challenge:["🏆","Challenge"],recap:["⏪","Recap"],teaser:["👀","Teaser"],flashsale:["⚡","Flash Sale"],lyrics:["🎵","Lyrics"],meme:["😂","Meme"],cooking:["👨‍🍳","Cooking"],study:["📚","Study"],weddinginvite:["💍","Wedding Invite"],graduation:["🎓","Graduation"],ramadan:["🌙","Ramadan"],luxuryestate:["🏛","Luxury Estate"],sportnews:["⚽","Sport News"],unboxpro:["📦","Unbox Pro"],travelpro:["✈️","Travel Pro"],newyear:["🎆","New Year"],petfun:["🐶","Pet Fun"],velocity:["⚡","Velocity Edit"],phonk:["💀","Phonk"],anime:["✨","Anime Edit"],y2k:["💿","Y2K"],vhs:["📼","VHS Tape"],film35:["🎞","35mm Film"],luxcar:["🏎","Luxury Car"],nightdrive:["🌃","Night Drive"],gymbeast:["🦁","Beast Mode"],fightcamp:["🥊","Fight Camp"],dancechallenge:["💃","Dance Challenge"],tutorialpro:["📘","Tutorial Pro"],coursepromo:["🎓","Course Promo"],realestatepro:["🎥","Property Film"],hotelpromo:["🏨","Hotel Promo"],restaurantpromo:["🍽","Restaurant"],fashionfilm:["👗","Fashion Film"],beautytips:["💄","Beauty Tips"],barberpro:["💈","Barber Pro"],weddingfilm:["🎞","Wedding Film"],babyshower:["👶","Baby Shower"],travelcine:["🎬","Travel Film"],droneview:["🚁","Drone View"],citytour:["🏙","City Tour"],foodreview:["⭐","Food Review"],asmrfood:["🎧","ASMR Food"],gamingmontage:["🎮","Gaming Montage"],streamhighlight:["🔴","Stream Highlights"],musicvideo:["🎬","Music Video"],concertlive:["🎤","Concert Live"],ltnews:["📰","Lower Third · News"],ltsport:["🏟","Lower Third · Sport"],ltdoc:["🎥","Lower Third · Doc"],titlecine:["🎬","Cinematic Title"],titlemin:["◻","Minimal Title"],podcastvid:["🎙","Video Podcast"],cryptonews:["📈","Crypto Update"],coachpro:["🏋","Coach Pro"],salonpro:["💇","Salon Pro"],clinicpro:["🩺","Clinic Pro"],deliverypro:["🚀","Delivery Promo"],coursesales:["🎓","Course Sales"],weddinglt:["💍","Wedding Names"],estatelt:["🏠","Property Lower Third"],streampro:["🔴","Stream Starting"],photog:["📷","Photographer"]};
 const TPL_GRADS=[["#f59e0b","#ef4444"],["#8b5cf6","#ec4899"],["#06b6d4","#3b82f6"],["#22c55e","#84cc16"],["#f97316","#f43f5e"],["#6366f1","#a855f7"],["#0ea5e9","#22d3ee"],["#eab308","#f97316"],["#ec4899","#8b5cf6"],["#14b8a6","#0ea5e9"],["#f43f5e","#fb923c"],["#475569","#0f172a"]];
 function renderTplCards(){ const g=$("#tplGrid"); if(!g)return; g.innerHTML="";
  Object.keys(TEMPLATES).forEach((k,i)=>{ const mt=TPL_META[k]||["🎬",k]; const gr=TPL_GRADS[i%TPL_GRADS.length];
@@ -933,7 +973,12 @@ function openSheetByName(name){
  const sh=$("#sheet-"+name); if(sh)sh.classList.add("open");
  const t=document.querySelector('.tool[data-sheet="'+name+'"]'); if(t)t.classList.add("on");
 }
-(()=>{ const hc=$("#homeCard"); if(hc)refreshChrome();
+(()=>{ const tb=$("#themeBtn");
+ if(tb){ if(localStorage.getItem("cv_theme")==="pro")document.body.classList.add("pro");
+  tb.onclick=()=>{ const on=document.body.classList.toggle("pro");
+   localStorage.setItem("cv_theme",on?"pro":"gold");
+   flashNow(on?"Pro theme (Premiere-style) 🎨":"Classic gold theme 🎨") } }
+ const hc=$("#homeCard"); if(hc)refreshChrome();
  const add=$("#hcAdd"); if(add)add.onclick=()=>$("#fileIn").click();
  const auto=$("#hcAuto"); if(auto)auto.onclick=()=>{ openSheetByName("media");
   setTimeout(()=>{ const el=$("#avTitle"); if(el){el.focus(); el.scrollIntoView({block:"center"})} },80) };
@@ -1205,7 +1250,7 @@ function snapshotState(){return JSON.stringify({segments,texts,overlays,selSeg,
  adj:[$("#adjB").value,$("#adjC").value,$("#adjS").value],
  pc:[pcCol.temp,pcCol.tint,pcCol.vib,pcCol.fade],
  m2:{sel:$("#music2Sel").value,vol:+$("#music2Vol").value,off:+($("#music2Off").value||0)},
- fx:[postfx.vig,postfx.grain,postfx.glow,postfx.leak,postfx.glitch?1:0],duck:duckOn?1:0})}
+ fx:[postfx.vig,postfx.grain,postfx.glow,postfx.leak,postfx.glitch?1:0,postfx.st||0,postfx.stSh||"#20306e",postfx.stHi||"#ffb36b"],duck:duckOn?1:0})}
 function pushHistory(){
  if(histLock)return;
  const s=snapshotState();
@@ -1228,8 +1273,10 @@ function applySnapshot(s){
   if(o.adj){["#adjB","#adjC","#adjS"].forEach((id,i)=>{$(id).value=o.adj[i]});["#adjBO","#adjCO","#adjSO"].forEach((id,i)=>{$(id).textContent=o.adj[i]})}
   if(o.pc){pcCol={temp:o.pc[0],tint:o.pc[1],vib:o.pc[2],fade:o.pc[3]};["#pcTemp","#pcTint","#pcVib","#pcFade"].forEach((id,i)=>{$(id).value=o.pc[i];$(id+"O").textContent=o.pc[i]})}
   if(o.m2){$("#music2Sel").value=o.m2.sel||"";$("#music2Sel").dispatchEvent(new Event("change"));$("#music2Vol").value=o.m2.vol!=null?o.m2.vol:80;$("#music2VolO").textContent=$("#music2Vol").value;$("#music2Off").value=o.m2.off||0}
-  if(o.fx){postfx={vig:o.fx[0],grain:o.fx[1],glow:o.fx[2],leak:o.fx[3],glitch:!!o.fx[4]};
+  if(o.fx){postfx={vig:o.fx[0],grain:o.fx[1],glow:o.fx[2],leak:o.fx[3],glitch:!!o.fx[4],st:o.fx[5]||0,stSh:o.fx[6]||"#20306e",stHi:o.fx[7]||"#ffb36b"};
    ["#fxVig","#fxGrain","#fxGlow","#fxLeak"].forEach((id,i)=>{$(id).value=Math.round(o.fx[i]*100);$(id+"O").textContent=Math.round(o.fx[i]*100)});
+   const stEl=$("#fxSt"); if(stEl){stEl.value=Math.round(postfx.st*100); $("#fxStO").textContent=Math.round(postfx.st*100)}
+   const shEl=$("#fxStSh"); if(shEl)shEl.value=postfx.stSh; const hiEl=$("#fxStHi"); if(hiEl)hiEl.value=postfx.stHi;
    $("#fxGlitch").textContent=postfx.glitch?"📺 Glitch bursts: ON":"📺 Glitch bursts: OFF"}
   if(o.duck!=null){duckOn=!!o.duck;const db=$("#duckBtn");if(db)db.textContent=duckOn?"🦆 Auto-duck music under speech: ON":"🦆 Auto-duck music under speech: OFF"}
   stopPlayback(); curSeg=-1;
