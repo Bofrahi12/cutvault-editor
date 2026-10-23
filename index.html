@@ -129,6 +129,9 @@ body.pro .logo span{color:#4d8dff}
 body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.rtl .transport{direction:ltr}
 #langSel{background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:0 6px;font-weight:700}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Pacifico&family=Orbitron:wght@700&family=Rubik:wght@400;700&family=Cairo:wght@700;900&family=Amiri:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
 </head>
 <body>
 <header>
@@ -303,6 +306,18 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <div class="sub" data-i18n="sub_vo">🎙 Voice-over — record your voice</div>
   <div class="row"><button id="voRec" style="flex:1">⏺ Record</button><button id="voStop" style="flex:1" disabled>⏹ Stop</button></div>
   <p class="hint" id="voState">Record a voice-over and it lands in your library — then set it as Track 2 to narrate over your video.</p>
+  <div class="sub">🔊 Sound effects — generated for you, royalty-free</div>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    <button data-sfx="whoosh" style="flex:1 1 22%">💨 Whoosh</button>
+    <button data-sfx="pop" style="flex:1 1 22%">🫧 Pop</button>
+    <button data-sfx="ding" style="flex:1 1 22%">🔔 Ding</button>
+    <button data-sfx="riser" style="flex:1 1 22%">📈 Riser</button>
+    <button data-sfx="impact" style="flex:1 1 22%">💥 Impact</button>
+    <button data-sfx="click" style="flex:1 1 22%">🖱 Click</button>
+    <button data-sfx="sparkle" style="flex:1 1 22%">✨ Sparkle</button>
+    <button data-sfx="bassdrop" style="flex:1 1 22%">🔊 Bass drop</button>
+  </div>
+  <p class="hint">Tap one — it's synthesized on your device and added to your library, ready to use as a track.</p>
   <div class="sub" data-i18n="sub_beats">🥁 Beat sync</div>
   <button class="bigbtn" id="beatBtn" style="width:100%">🥁 Detect beats in Track 1 music</button>
   <p class="hint" id="beatState">Beats appear as ticks under the timeline.</p>
@@ -326,6 +341,11 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <button>🏠</button><button>🔑</button><button>🛍</button><button>💸</button><button>📈</button><button>🏋️</button><button>🍰</button><button>📚</button>
     <button>🫶</button><button>👍</button><button>🤝</button><button>🙏</button><button>😂</button><button>🥹</button><button>😍</button><button>👏</button>
     <button>🙌</button><button>💸</button><button>📈</button><button>🌟</button>
+    <button>⬆️</button><button>⬅️</button><button>🔴</button><button>🟢</button><button>🟡</button><button>🔵</button><button>⬛</button><button>⬜</button>
+    <button>🔶</button><button>🔷</button><button>💠</button><button>🔺</button><button>🔻</button><button>▶️</button><button>⏸</button><button>⏭</button>
+    <button>🔊</button><button>🔇</button><button>📸</button><button>🎥</button><button>💾</button><button>🔗</button><button>🏷️</button><button>💲</button>
+    <button>🛒</button><button>📦</button><button>🚚</button><button>⏱</button><button>📅</button><button>🔥</button><button>❄️</button><button>🌊</button>
+    <button>☀️</button><button>⭐</button><button>🌈</button><button>🍩</button>
   </div>
   <div class="sub">Quick captions — one line = one caption (2.5s each, burned into the export)</div>
   <div class="field"><textarea id="capLines" rows="3" placeholder="Paste or type your caption lines here, one per line…" style="width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px"></textarea></div>
@@ -342,6 +362,10 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <label style="display:flex;gap:9px;align-items:center;font-size:14px;margin:4px 0 10px"><input type="checkbox" id="capKaraoke" style="width:19px;height:19px;accent-color:var(--gold)"> 🎤 Karaoke — highlight each word as it's spoken</label>
   <button class="gold bigbtn" id="autoCapBtn">🤖 Generate captions for selected clip</button>
   <p class="hint" id="autoCapState" style="margin-top:8px">First use downloads the Whisper AI model (~40 MB) once. Then it works on-device. Select a video clip on the timeline first — captions are placed on that clip.</p>
+  <div class="row" style="margin-top:9px">
+    <button id="srtExp" style="flex:1">⬇ Export subtitles (.srt)</button>
+    <label class="gold" style="flex:1;text-align:center;padding:11px;border-radius:10px;cursor:pointer;font-weight:700">⬆ Import .srt<input type="file" id="srtIn" accept=".srt,text/plain" hidden></label>
+  </div>
   <div class="sub">Your texts</div>
   <div id="textList"></div>
 </div>
@@ -433,7 +457,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v17 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v18 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>

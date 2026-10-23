@@ -296,10 +296,11 @@ function renderTextList(){
   <div class="field"><label>↕ Position %</label><input type="number" min="0" max="100" value="${t.y}" data-k="y"></div></div>
   <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","marker","outline","retro","block","cursive","type","grad","pop","thin","sticker","wide","double"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
   <div class="field"><label>Animation</label><select data-k="anim" style="width:100%">${["none","fade","pop","slide","drop"].map(v=>`<option value="${v}" ${(t.anim||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div></div>
+  <div class="row"><div class="field" style="flex:1"><label>Font</label><select data-k="font" style="width:100%"><option value="">Default</option>${Object.keys(FONTS).map(v=>`<option value="${v}" ${t.font===v?"selected":""}>${FONT_LABELS[v]}</option>`).join("")}</select></div></div>
   <button class="danger" style="width:100%">Delete text</button>
   <div class="row" style="margin-top:7px"><button class="tbDup" style="flex:1">⎘ Duplicate</button><button class="tbUp" style="flex:1">↑ Bring front</button><button class="tbDn" style="flex:1">↓ Send back</button></div>`;
   d.onclick=()=>{selText=t.id;renderTextList();renderTextTrack()};
-  d.querySelectorAll("input,select").forEach(inp=>{const upd=()=>{const k=inp.dataset.k;t[k]=["content","color","style","anim"].includes(k)?inp.value:+inp.value;renderTextTrack();drawFrame()};inp.oninput=upd;inp.onchange=()=>{upd();pushHistory()}});
+  d.querySelectorAll("input,select").forEach(inp=>{const upd=()=>{const k=inp.dataset.k;t[k]=k==="font"?(inp.value||null):["content","color","style","anim"].includes(k)?inp.value:+inp.value;renderTextTrack();drawFrame()};inp.oninput=upd;inp.onchange=()=>{upd();pushHistory()}});
   d.querySelector("button.danger").onclick=e=>{e.stopPropagation();texts=texts.filter(x=>x.id!==t.id);renderTextList();renderTextTrack();drawFrame();pushHistory()};
   const tbd=d.querySelector(".tbDup"); if(tbd)tbd.onclick=e=>{e.stopPropagation();const c={...t,id:"t"+(++txtSeq)};texts.push(c);selText=c.id;renderTextList();renderTextTrack();drawFrame();pushHistory()};
   const tbu=d.querySelector(".tbUp"); if(tbu)tbu.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>=0&&i<texts.length-1){texts.splice(i,1);texts.splice(i+1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
@@ -425,7 +426,7 @@ function drawFrame(){
   else if(t.anim==="slide"){const p=Math.max(0,Math.min(1,age/0.35));yOff=(1-p)*38;alpha=Math.min(1,Math.max(0,age)/0.2)}
   else if(t.anim==="drop"){const p=Math.max(0,Math.min(1,age/0.3));yOff=-(1-p)*(1-p)*70;alpha=Math.min(1,Math.max(0,age)/0.15)}
   ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,alpha));
-  const fontFor=(f)=>`${t.style==="thin"?"300":t.style==="cursive"?"italic 700":"800"} ${f}px ${t.style==="cursive"?"'Segoe Script','Comic Sans MS',cursive":t.style==="type"?"'Courier New',monospace":"Inter,Arial,sans-serif"}`;
+  const fontFor=(f)=>{const fam=t.font&&FONTS[t.font]?FONTS[t.font]:(t.style==="cursive"?"'Segoe Script','Comic Sans MS',cursive":t.style==="type"?"'Courier New',monospace":"Inter,Arial,sans-serif");return `${t.style==="thin"?"300":t.style==="cursive"&&!t.font?"italic 700":"800"} ${f}px ${fam}`};
   let fs=t.size*(W/720);ctx.font=fontFor(fs);ctx.textAlign="center";ctx.textBaseline="middle";
   const mw0=ctx.measureText(t.content).width; if(mw0>W*0.92){fs=fs*(W*0.92)/mw0;ctx.font=fontFor(fs)}
   ctx.translate(W*t.x/100, H*t.y/100+yOff); if(scaleK!==1)ctx.scale(scaleK,scaleK);
@@ -587,7 +588,7 @@ function finishExportBlob(){
   <video src="${url}" controls style="width:100%;border-radius:9px;background:#000"></video>
   <div style="height:8px"></div><a href="${url}" download="${expFileName()}.webm"><button class="gold" style="width:100%">⬇ Download WebM</button></a>
   <div class="row" style="margin-top:9px"><select id="mp4Q"><option value="23">MP4 · Balanced</option><option value="18">MP4 · High quality</option><option value="28">MP4 · Small file</option></select>
-  <button id="mp4Btn" class="gold">🎬 Convert to MP4</button></div>
+  <button id="mp4Btn" class="gold">🎬 Convert to MP4</button><button id="gifBtn">🖼 GIF</button></div>
   <p class="hint" id="mp4State" style="margin-top:7px">MP4 conversion runs on your device too (first time downloads a ~31 MB converter — needs internet once).</p>
   <div id="mp4Done"></div></div>`;
  const sb=document.createElement("button"); sb.className="bigbtn"; sb.style.cssText="width:100%;margin-top:9px"; sb.textContent="📤 Share video";
@@ -603,7 +604,9 @@ function finishExportBlob(){
 $("#transSel").onchange=e=>{curTransition=e.target.value;drawFrame()};
 function setSelect(id,val){const el=$(id);el.value=val;el.dispatchEvent(new Event("change"))}
 function setPreset(name){presetBox.querySelectorAll(".preset").forEach(b=>{if(b.textContent===name)b.click()})}
-function mkTplText(content,o){const t={id:"t"+(++txtSeq),content,start:o.start||0,end:o.end||6,size:o.size||64,color:o.color||"#ffffff",stroke:true,x:o.x??50,y:o.y??82,anim:o.anim||"pop",style:o.style||"classic",tpl:true};texts.push(t);return t}
+const FONTS={anton:"Anton,Arial,sans-serif",bebas:"'Bebas Neue',Arial,sans-serif",pacifico:"Pacifico,cursive",orbitron:"Orbitron,monospace",rubik:"Rubik,Arial,sans-serif",cairo:"Cairo,Arial,sans-serif",amiri:"Amiri,serif"};
+const FONT_LABELS={anton:"Anton — bold poster",bebas:"Bebas — tall titles",pacifico:"Pacifico — script",orbitron:"Orbitron — futuristic",rubik:"Rubik — clean modern",cairo:"Cairo — العربية",amiri:"Amiri — العربية كلاسيك"};
+function mkTplText(content,o){const t={id:"t"+(++txtSeq),content,start:o.start||0,end:o.end||6,size:o.size||64,color:o.color||"#ffffff",stroke:true,x:o.x??50,y:o.y??82,anim:o.anim||"pop",style:o.style||"classic",font:o.font||null,tpl:true};texts.push(t);return t}
 const TEMPLATES={
  reel:{ratio:"9:16",fit:"fit",preset:"Vivid",trans:"dip",texts:d=>[["YOUR HOOK HERE",{start:0,end:Math.min(3,d),size:88,y:13}],["Your caption — edit me",{start:0,end:d,size:52,y:85}]]},
  cine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["YOUR FILM TITLE",{start:0,end:Math.min(3.5,d),size:76,y:50}]]},
@@ -686,7 +689,7 @@ const TEMPLATES={
  ltnews:{ratio:"16:9",fit:"fit",preset:"Sharp Pop",trans:"slideup",texts:d=>[["BREAKING NEWS",{start:0,end:d,size:56,x:16,y:80,style:"double",anim:"slide"}],["Your reporter name · Live",{start:0.2,end:d,size:40,x:16,y:90,style:"box",anim:"fade"}]]},
  ltsport:{ratio:"16:9",fit:"fit",preset:"Vivid",trans:"whip",texts:d=>[["MATCH DAY",{start:0,end:d,size:60,x:15,y:79,style:"grad",anim:"slide"}],["Team A vs Team B · 20:00",{start:0.2,end:d,size:40,x:15,y:90,style:"box",anim:"fade"}]]},
  ltdoc:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"cross",texts:d=>[["NAME — TITLE",{start:0,end:d,size:48,x:15,y:81,style:"classic",anim:"fade"}],["Location · Year",{start:0.3,end:d,size:38,x:15,y:90,style:"thin",anim:"fade"}]]},
- titlecine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["A STORY OF",{start:0,end:Math.min(2.6,d),size:44,y:38,style:"wide",anim:"fade"}],["YOUR TITLE",{start:0.4,end:Math.min(4,d),size:110,y:54,style:"thin",anim:"fade"}]]},
+ titlecine:{ratio:"16:9",fit:"fit",preset:"Cinematic",trans:"dip",letter:true,texts:d=>[["A STORY OF",{start:0,end:Math.min(2.6,d),size:44,y:38,style:"wide",anim:"fade",font:"bebas"}],["YOUR TITLE",{start:0.4,end:Math.min(4,d),size:110,y:54,style:"thin",anim:"fade",font:"bebas"}]]},
  titlemin:{ratio:"9:16",fit:"fit",preset:"Fade",trans:"fade",texts:d=>[["your title",{start:0,end:d,size:64,y:46,style:"thin",anim:"fade"}],["a short subtitle line",{start:0.4,end:d,size:40,y:56,style:"classic",anim:"fade"}]]},
  podcastvid:{ratio:"16:9",fit:"fit",preset:"Warm",trans:"cross",texts:d=>[["🎙 THE PODCAST",{start:0,end:Math.min(3,d),size:72,y:12}],["Ep. 12 — Guest Name",{start:0,end:d,size:44,x:15,y:88,style:"box",anim:"slide"}]]},
  cryptonews:{ratio:"9:16",fit:"fill",preset:"Sharp Pop",trans:"whip",texts:d=>[["BTC UPDATE 📈",{start:0,end:Math.min(3,d),size:84,y:13,style:"grad"}],["Watch before you trade",{start:0,end:d,size:50,y:86,style:"box"}]]},
@@ -697,7 +700,7 @@ const TEMPLATES={
  coursesales:{ratio:"16:9",fit:"fit",preset:"Golden Hour",trans:"zoomblur",texts:d=>[["THE COMPLETE COURSE",{start:0,end:Math.min(3.5,d),size:74,y:16,style:"gold"}],["-50% this week only",{start:0.5,end:d,size:56,y:84,style:"double",anim:"pop"}]]},
  weddinglt:{ratio:"16:9",fit:"fit",preset:"Golden Hour",trans:"cross",texts:d=>[["Sara & Omar",{start:0,end:d,size:58,x:15,y:81,style:"cursive",anim:"fade"}],["12 · 10 · 2026 — Tangier",{start:0.3,end:d,size:38,x:15,y:90,style:"thin",anim:"fade"}]]},
  estatelt:{ratio:"16:9",fit:"fit",preset:"Teal & Orange",trans:"slideup",texts:d=>[["FOR SALE — 120 m²",{start:0,end:d,size:52,x:16,y:80,style:"double",anim:"slide"}],["Marshan · 1 450 000 DH",{start:0.2,end:d,size:40,x:16,y:90,style:"box",anim:"fade"}]]},
- streampro:{ratio:"16:9",fit:"fill",preset:"Neon Night",trans:"zoomblur",texts:d=>[["🔴 STARTING SOON",{start:0,end:Math.min(3.5,d),size:80,y:44,style:"neon",anim:"pop"}],["@yourchannel",{start:0.3,end:d,size:46,y:88,style:"box"}]]},
+ streampro:{ratio:"16:9",fit:"fill",preset:"Neon Night",trans:"zoomblur",texts:d=>[["🔴 STARTING SOON",{start:0,end:Math.min(3.5,d),size:80,y:44,style:"neon",anim:"pop",font:"orbitron"}],["@yourchannel",{start:0.3,end:d,size:46,y:88,style:"box",font:"orbitron"}]]},
  photog:{ratio:"9:16",fit:"fit",preset:"Cinematic",trans:"cross",texts:d=>[["BEHIND THE LENS 📷",{start:0,end:Math.min(3,d),size:72,y:13,style:"wide"}],["shot on location",{start:0,end:d,size:44,y:87,style:"thin",anim:"fade"}]]}
 };
 const TPL_META={reel:["🎬","Reel Hook"],cine:["🎞","Cinematic"],product:["🛍","Product Ad"],vlog:["📱","Vlog"],estate:["🏠","Real Estate"],quote:["💬","Quote"],news:["📰","Breaking News"],tutorial:["🎓","Tutorial Steps"],beforeafter:["🔀","Before / After"],countdown:["⏱","Countdown"],sale:["🏷","Big Sale"],travel:["✈️","Travel"],food:["🍔","Food"],fitness:["💪","Fitness"],gaming:["🎮","Gaming"],music:["🎵","Music Drop"],birthday:["🎂","Birthday"],business:["💼","Business"],minimal:["◻","Minimal"],podcast:["🎙","Podcast"],wedding:["💍","Wedding"],motivation:["🔥","Motivation"],sports:["⚽","Sports"],tech:["💻","Tech Review"],fashion:["👗","Fashion"],education:["📚","Education"],unboxing:["📦","Unboxing"],storytime:["📖","Story Time"],challenge:["🏆","Challenge"],recap:["⏪","Recap"],teaser:["👀","Teaser"],flashsale:["⚡","Flash Sale"],lyrics:["🎵","Lyrics"],meme:["😂","Meme"],cooking:["👨‍🍳","Cooking"],study:["📚","Study"],weddinginvite:["💍","Wedding Invite"],graduation:["🎓","Graduation"],ramadan:["🌙","Ramadan"],luxuryestate:["🏛","Luxury Estate"],sportnews:["⚽","Sport News"],unboxpro:["📦","Unbox Pro"],travelpro:["✈️","Travel Pro"],newyear:["🎆","New Year"],petfun:["🐶","Pet Fun"],velocity:["⚡","Velocity Edit"],phonk:["💀","Phonk"],anime:["✨","Anime Edit"],y2k:["💿","Y2K"],vhs:["📼","VHS Tape"],film35:["🎞","35mm Film"],luxcar:["🏎","Luxury Car"],nightdrive:["🌃","Night Drive"],gymbeast:["🦁","Beast Mode"],fightcamp:["🥊","Fight Camp"],dancechallenge:["💃","Dance Challenge"],tutorialpro:["📘","Tutorial Pro"],coursepromo:["🎓","Course Promo"],realestatepro:["🎥","Property Film"],hotelpromo:["🏨","Hotel Promo"],restaurantpromo:["🍽","Restaurant"],fashionfilm:["👗","Fashion Film"],beautytips:["💄","Beauty Tips"],barberpro:["💈","Barber Pro"],weddingfilm:["🎞","Wedding Film"],babyshower:["👶","Baby Shower"],travelcine:["🎬","Travel Film"],droneview:["🚁","Drone View"],citytour:["🏙","City Tour"],foodreview:["⭐","Food Review"],asmrfood:["🎧","ASMR Food"],gamingmontage:["🎮","Gaming Montage"],streamhighlight:["🔴","Stream Highlights"],musicvideo:["🎬","Music Video"],concertlive:["🎤","Concert Live"],ltnews:["📰","Lower Third · News"],ltsport:["🏟","Lower Third · Sport"],ltdoc:["🎥","Lower Third · Doc"],titlecine:["🎬","Cinematic Title"],titlemin:["◻","Minimal Title"],podcastvid:["🎙","Video Podcast"],cryptonews:["📈","Crypto Update"],coachpro:["🏋","Coach Pro"],salonpro:["💇","Salon Pro"],clinicpro:["🩺","Clinic Pro"],deliverypro:["🚀","Delivery Promo"],coursesales:["🎓","Course Sales"],weddinglt:["💍","Wedding Names"],estatelt:["🏠","Property Lower Third"],streampro:["🔴","Stream Starting"],photog:["📷","Photographer"]};
@@ -866,8 +869,22 @@ function drawOverlays(pt){
   else if(m.type==="video"&&!vidUsed){ vidUsed=true; if(vid2.dataset.mid!==m.id){vid2.src=m.url;vid2.dataset.mid=m.id} if(vid2.readyState>=2){src=vid2;sw=vid2.videoWidth;sh=vid2.videoHeight} }
   if(!src||!sw)continue;
   const w=cv.width*(ov.scale/100), h=w*sh/sw;
+  const dx=cv.width*ov.x/100-w/2, dy=cv.height*ov.y/100-h/2;
+  const mkPath=()=>{ const cx=dx+w/2, cy=dy+h/2; ctx.beginPath();
+   if(ov.mask==="circle")ctx.ellipse(cx,cy,w/2,h/2,0,0,Math.PI*2);
+   else if(ov.mask==="round")ctx.roundRect(dx,dy,w,h,Math.min(w,h)*0.22);
+   else if(ov.mask==="heart"){ const s=Math.min(w,h); ctx.moveTo(cx,cy+s*0.42);
+    ctx.bezierCurveTo(cx-s*0.95,cy-s*0.05,cx-s*0.5,cy-s*0.85,cx,cy-s*0.28);
+    ctx.bezierCurveTo(cx+s*0.5,cy-s*0.85,cx+s*0.95,cy-s*0.05,cx,cy+s*0.42) }
+   else if(ov.mask==="star"){ for(let i=0;i<10;i++){ const r=i%2?Math.min(w,h)*0.21:Math.min(w,h)*0.5;
+     const a=-Math.PI/2+i*Math.PI/5, px=cx+r*Math.cos(a), py=cy+r*Math.sin(a);
+     i?ctx.lineTo(px,py):ctx.moveTo(px,py) } ctx.closePath() }
+   else ctx.rect(dx,dy,w,h) };
   ctx.save(); ctx.globalAlpha=ov.op!=null?ov.op:1; ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=12;
-  ctx.drawImage(src, cv.width*ov.x/100-w/2, cv.height*ov.y/100-h/2, w, h); ctx.restore();
+  if(ov.mask&&ov.mask!=="none"){ mkPath(); ctx.clip() }
+  ctx.drawImage(src, dx, dy, w, h); ctx.restore();
+  if(ov.border&&ov.mask&&ov.mask!=="none"){ ctx.save(); mkPath(); ctx.lineWidth=Math.max(3,cv.width*0.006);
+   ctx.strokeStyle="#f5cd63"; ctx.stroke(); ctx.restore() }
  }
 }
 function renderOverlays(){
@@ -895,6 +912,8 @@ function renderOvPanel(){
  <div class="slider-row"><span>Opacity</span><input type="range" id="ovOp" min="10" max="100" value="${Math.round((ov.op!=null?ov.op:1)*100)}"><output>${Math.round((ov.op!=null?ov.op:1)*100)}%</output></div>
  <div class="row"><div class="field"><label>Start (s)</label><input type="number" id="ovStart" step="0.1" min="0" value="${ov.start}"></div>
  <div class="field"><label>Duration (s)</label><input type="number" id="ovDur" step="0.1" min="0.3" value="${ov.dur}"></div></div>
+ <div class="row"><div class="field"><label>Mask shape</label><select id="ovMask" style="width:100%">${["none","circle","round","heart","star"].map(v=>`<option value="${v}" ${(ov.mask||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div>
+ <div class="field"><label>Gold border</label><select id="ovBorder" style="width:100%"><option value="0" ${!ov.border?"selected":""}>Off</option><option value="1" ${ov.border?"selected":""}>On</option></select></div></div>
  <button class="danger" id="ovDel" style="width:100%">🗑 Delete overlay</button>`;
  $("#ovScale").oninput=e=>{ov.scale=+e.target.value;e.target.nextElementSibling.textContent=ov.scale+"%";drawFrame()};
  $("#ovX").oninput=e=>{ov.x=+e.target.value;e.target.nextElementSibling.textContent=ov.x;drawFrame()};
@@ -904,6 +923,8 @@ function renderOvPanel(){
  ["#ovScale","#ovX","#ovY"].forEach(id=>{$(id).onchange=()=>{renderOverlays();pushHistory()}});
  $("#ovStart").onchange=e=>{ov.start=Math.max(0,+e.target.value||0);renderOverlays();pushHistory()};
  $("#ovDur").onchange=e=>{ov.dur=Math.max(0.3,+e.target.value||1);renderOverlays();pushHistory()};
+ const om=$("#ovMask"); if(om)om.onchange=e=>{ov.mask=e.target.value;drawFrame();pushHistory()};
+ const ob=$("#ovBorder"); if(ob)ob.onchange=e=>{ov.border=e.target.value==="1";drawFrame();pushHistory()};
  $("#ovDel").onclick=()=>{overlays=overlays.filter(o=>o.id!==ov.id);selOv=null;renderOverlays();renderOvPanel();drawFrame();pushHistory()};
 }
 /* overlay video sync */
@@ -1084,6 +1105,28 @@ $("#avGo").onclick=async()=>{ const btn=$("#avGo"); btn.disabled=true; btn.textC
   }catch(e){ st.textContent="Could not reach HuggingFace from this browser — check your connection and retry." }
   btn.disabled=false };
 })();
+/* ----- Subtitles: SRT export / import ----- */
+function srtTime(s){ const h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=Math.floor(s%60), ms=Math.round((s%1)*1000);
+ const p=(n,l=2)=>String(n).padStart(l,"0"); return `${p(h)}:${p(m)}:${p(ss)},${p(ms,3)}` }
+$("#srtExp").onclick=()=>{ const list=[...texts].sort((a,b)=>a.start-b.start);
+ if(!list.length){ flashNow("No texts yet — add captions or texts first"); return }
+ const body=list.map((t,i)=>`${i+1}\n${srtTime(t.start)} --> ${srtTime(t.end)}\n${t.content}\n`).join("\n");
+ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([body],{type:"text/plain"}));
+ a.download=expFileName()+".srt"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+ flashNow("Subtitles exported ✓ (.srt — works on YouTube, Premiere, VLC…)") };
+$("#srtIn").onchange=async e=>{ const f=e.target.files[0]; if(!f)return;
+ try{ const raw=await f.text();
+  const blocks=raw.replace(/\r/g,"").split(/\n\n+/); let n=0;
+  const re=/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)/;
+  for(const b of blocks){ const m=b.match(re); if(!m)continue;
+   const t0=+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000, t1=+m[5]*3600+ +m[6]*60+ +m[7]+ +m[8]/1000;
+   const lines=b.split("\n").filter(l=>l.trim()&&!/^\d+$/.test(l.trim())&&!l.includes("-->"));
+   if(!lines.length)continue;
+   texts.push({id:"t"+(++txtSeq),content:lines.join(" "),start:+t0.toFixed(2),end:+t1.toFixed(2),size:52,color:"#ffffff",stroke:true,x:50,y:86,style:"box",anim:"none"}); n++ }
+  renderTextTrack(); renderTextList(); drawFrame(); pushHistory(); markDirty();
+  flashNow(n?("Imported "+n+" subtitle lines ✓"):"No valid subtitles found in that file");
+ }catch(err){ flashNow("Could not read that .srt file") }
+ e.target.value="" };
 /* ----- Voice-over recording (mic → library) ----- */
 let voRec=null, voChunks=[], voStream=null;
 $("#voRec").onclick=async()=>{ const st=$("#voState");
@@ -1100,6 +1143,38 @@ $("#voRec").onclick=async()=>{ const st=$("#voState");
  voRec.start(); $("#voRec").disabled=true; $("#voStop").disabled=false;
  st.textContent="🔴 Recording… speak now, tap Stop when you're done." };
 $("#voStop").onclick=()=>{ if(voRec&&voRec.state!=="inactive")voRec.stop() };
+/* ----- Built-in SFX: synthesized sound effects ----- */
+async function renderSfx(kind){
+ const dur={whoosh:0.6,pop:0.16,ding:0.9,riser:1.3,impact:0.6,click:0.07,sparkle:0.5,bassdrop:1.0}[kind]||0.5;
+ const oc=new OfflineAudioContext(2,Math.ceil(dur*44100),44100);
+ const master=oc.createGain(); master.gain.value=0.9; master.connect(oc.destination);
+ const nb=oc.createBuffer(1,44100,44100); const nd=nb.getChannelData(0);
+ for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+ const tone=(f0,f1,t,d,type,g)=>{ const o=oc.createOscillator(), gn=oc.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t); if(f1)o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+d);
+  gn.gain.setValueAtTime(g,t); gn.gain.exponentialRampToValueAtTime(0.001,t+d);
+  o.connect(gn); gn.connect(master); o.start(t); o.stop(t+d+0.05) };
+ const noise=(t,d,g,fType,f0,f1)=>{ const src=oc.createBufferSource(); src.buffer=nb; src.loop=true;
+  const fl=oc.createBiquadFilter(); fl.type=fType; fl.frequency.setValueAtTime(f0,t);
+  if(f1)fl.frequency.exponentialRampToValueAtTime(f1,t+d);
+  const gn=oc.createGain(); gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(g,t+d*0.25);
+  gn.gain.exponentialRampToValueAtTime(0.001,t+d);
+  src.connect(fl); fl.connect(gn); gn.connect(master); src.start(t); src.stop(t+d+0.05) };
+ if(kind==="whoosh")noise(0,0.6,0.7,"bandpass",400,2600);
+ else if(kind==="pop")tone(520,140,0,0.16,"sine",0.8);
+ else if(kind==="ding"){ tone(1318,null,0,0.9,"sine",0.5); tone(1975,null,0,0.5,"sine",0.22) }
+ else if(kind==="riser"){ tone(110,880,0,1.3,"sawtooth",0.25); noise(0,1.3,0.14,"highpass",900,4000) }
+ else if(kind==="impact"){ tone(130,32,0,0.6,"sine",0.95); noise(0,0.25,0.5,"lowpass",900,null) }
+ else if(kind==="click")tone(1250,null,0,0.07,"square",0.4);
+ else if(kind==="sparkle"){ [1568,2093,2637].forEach((f,i)=>tone(f,null,i*0.09,0.32,"sine",0.4)) }
+ else if(kind==="bassdrop")tone(300,38,0,1.0,"sine",0.9);
+ const buf=await oc.startRendering(); return bufferToWav(buf);
+}
+document.querySelectorAll("[data-sfx]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
+ try{ const blob=await renderSfx(b.dataset.sfx);
+  addFiles([new File([blob],"sfx-"+b.dataset.sfx+".wav",{type:"audio/wav"})]);
+  flashNow("Sound effect added to your library ✓") }catch(e){ flashNow("SFX failed — try again") }
+ b.disabled=false });
 /* ----- AI Music Maker: generative composition, rendered on-device ----- */
 const MM_STYLES={
  lofi:{bpm:78,root:45,mode:[0,3,5,7,10],prog:[[0,3,7,10],[8,0,3,7],[3,7,10,2],[10,2,5,8]],wave:"triangle",bassWave:"sine",drums:"lofi",melGain:.20},
@@ -1435,6 +1510,25 @@ document.addEventListener("click",async e=>{
  }catch(err){
   st.textContent="MP4 conversion failed ("+(err.message||"network")+") — the WebM above still works everywhere; check your connection and tap Convert again.";
  }
+ btn.disabled=false;
+});
+document.addEventListener("click",async e=>{
+ if(e.target.id!=="gifBtn")return;
+ const st=$("#mp4State"), btn=$("#gifBtn"); if(!window.__lastWebm||!st)return;
+ btn.disabled=true;
+ try{
+  await ensureFF(st);
+  st.textContent="Converting to GIF…";
+  const data=await window.FFmpegUtil.fetchFile(window.__lastWebm);
+  await ffInst.writeFile("in.webm",data);
+  await ffInst.exec(["-i","in.webm","-vf","fps=12,scale=480:-1:flags=lanczos","-loop","0","out.gif"]);
+  const out=await ffInst.readFile("out.gif");
+  const blob=new Blob([out.buffer],{type:"image/gif"});
+  const url=URL.createObjectURL(blob), mb=(blob.size/1048576).toFixed(2);
+  st.textContent="GIF ready ✓ — "+mb+" MB";
+  $("#mp4Done").innerHTML=`<img src="${url}" style="width:100%;border-radius:9px;margin-top:8px">
+   <a href="${url}" download="${expFileName()}.gif"><button class="gold" style="width:100%;margin-top:8px">⬇ Download GIF</button></a>`;
+ }catch(err){ st.textContent="GIF conversion failed — the WebM/MP4 above still work." }
  btn.disabled=false;
 });
 /* ----- init ----- */
