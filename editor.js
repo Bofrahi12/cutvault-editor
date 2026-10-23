@@ -297,10 +297,17 @@ function renderTextList(){
   <div class="row"><div class="field"><label>Style</label><select data-k="style" style="width:100%">${["classic","gold","neon","box","highlight","marker","outline","retro","block","cursive","type","grad","pop","thin","sticker","wide","double"].map(v=>`<option value="${v}" ${(t.style||"classic")===v?"selected":""}>${v}</option>`).join("")}</select></div>
   <div class="field"><label>Animation</label><select data-k="anim" style="width:100%">${["none","fade","pop","slide","drop"].map(v=>`<option value="${v}" ${(t.anim||"none")===v?"selected":""}>${v}</option>`).join("")}</select></div></div>
   <div class="row"><div class="field" style="flex:1"><label>Font</label><select data-k="font" style="width:100%"><option value="">Default</option>${Object.keys(FONTS).map(v=>`<option value="${v}" ${t.font===v?"selected":""}>${FONT_LABELS[v]}</option>`).join("")}</select></div></div>
+  <div class="row"><div class="field"><label>Outline width</label><select data-k="strokeK" style="width:100%">${[["","Default"],["0","None"],["0.6","Thin"],["1","Normal"],["1.7","Bold"]].map(([v,l])=>`<option value="${v}" ${String(t.strokeK??"")===v?"selected":""}>${l}</option>`).join("")}</select></div>
+  <div class="field"><label>Shadow</label><select data-k="shadow" style="width:100%">${[["def","Default"],["on","Strong"],["off","Off"]].map(([v,l])=>`<option value="${v}" ${(t.shadow==null?"def":t.shadow?"on":"off")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
   <button class="danger" style="width:100%">Delete text</button>
   <div class="row" style="margin-top:7px"><button class="tbDup" style="flex:1">⎘ Duplicate</button><button class="tbUp" style="flex:1">↑ Bring front</button><button class="tbDn" style="flex:1">↓ Send back</button></div>`;
   d.onclick=()=>{selText=t.id;renderTextList();renderTextTrack()};
-  d.querySelectorAll("input,select").forEach(inp=>{const upd=()=>{const k=inp.dataset.k;t[k]=k==="font"?(inp.value||null):["content","color","style","anim"].includes(k)?inp.value:+inp.value;renderTextTrack();drawFrame()};inp.oninput=upd;inp.onchange=()=>{upd();pushHistory()}});
+  d.querySelectorAll("input,select").forEach(inp=>{const upd=()=>{const k=inp.dataset.k;
+   if(k==="font")t.font=inp.value||null;
+   else if(k==="strokeK")t.strokeK=inp.value===""?undefined:+inp.value;
+   else if(k==="shadow")t.shadow=inp.value==="def"?undefined:inp.value==="on";
+   else t[k]=["content","color","style","anim"].includes(k)?inp.value:+inp.value;
+   renderTextTrack();drawFrame()};inp.oninput=upd;inp.onchange=()=>{upd();pushHistory()}});
   d.querySelector("button.danger").onclick=e=>{e.stopPropagation();texts=texts.filter(x=>x.id!==t.id);renderTextList();renderTextTrack();drawFrame();pushHistory()};
   const tbd=d.querySelector(".tbDup"); if(tbd)tbd.onclick=e=>{e.stopPropagation();const c={...t,id:"t"+(++txtSeq)};texts.push(c);selText=c.id;renderTextList();renderTextTrack();drawFrame();pushHistory()};
   const tbu=d.querySelector(".tbUp"); if(tbu)tbu.onclick=e=>{e.stopPropagation();const i=texts.indexOf(t);if(i>=0&&i<texts.length-1){texts.splice(i,1);texts.splice(i+1,0,t);renderTextList();renderTextTrack();drawFrame();pushHistory()}};
@@ -345,6 +352,13 @@ vid.addEventListener("timeupdate",()=>{const s=segments[curSeg];if(!s)return;con
  if(m&&m.type!=="image"&&vid.currentTime>=s.out-0.03&&playing)nextSegment()});
 
 /* ---------- drawing ---------- */
+function kfEase(name,p){ switch(name){
+ case "smooth": return p*p*(3-2*p);
+ case "in": return p*p;
+ case "out": return 1-(1-p)*(1-p);
+ case "bounce": { const n=7.5625,d=2.75; if(p<1/d)return n*p*p; if(p<2/d)return n*(p-=1.5/d)*p+0.75; if(p<2.5/d)return n*(p-=2.25/d)*p+0.9375; return n*(p-=2.625/d)*p+0.984375 }
+ case "back": { const c=1.70158,q=p-1; return 1+(c+1)*q*q*q+c*q*q }
+ default: return p } }
 function drawFrame(){
  const W=cv.width,H=cv.height;ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
  const s=segments[curSeg],m=s?media.get(s.mediaId):null;
@@ -380,7 +394,7 @@ function drawFrame(){
       let A=F,B=T,lp=p;
       if(M){const at=Math.max(0.05,Math.min(0.95,(M.at||50)/100));
         if(p<at){A=F;B=M;lp=p/at}else{A=M;B=T;lp=(p-at)/(1-at)}}
-      const e=s.kf.ease==="smooth"?(lp*lp*(3-2*lp)):lp;
+      const e=kfEase(s.kf.ease,lp);
       const gv=(o,k,dft)=>o[k]!=null?o[k]:dft;
       Z=gv(A,"z",1)+(gv(B,"z",1)-gv(A,"z",1))*e;
       OX=gv(A,"x",0)+(gv(B,"x",0)-gv(A,"x",0))*e;
@@ -448,11 +462,11 @@ function drawFrame(){
   if(style==="wide"){try{ctx.letterSpacing="7px"}catch(e){}}
   if(style==="double"){ctx.save();ctx.lineWidth=fs/4.5;ctx.strokeStyle="#f5cd63";ctx.lineJoin="round";ctx.strokeText(t.content,0,0);ctx.lineWidth=fs/9;ctx.strokeStyle="rgba(0,0,0,0.9)";ctx.strokeText(t.content,0,0);ctx.restore()}
   if(style==="retro"||style==="pop"){ctx.save();ctx.shadowBlur=0;ctx.fillStyle=style==="retro"?"#e4572e":"#141414";ctx.fillText(t.content,fs*0.07,fs*0.08);ctx.restore()}
-  if(style!=="neon"&&(t.stroke||style==="gold"||style==="outline"||style==="block"||style==="pop"||style==="retro")){ctx.lineWidth=style==="outline"?fs/7:style==="block"?fs/5.5:style==="pop"?fs/7:style==="retro"?fs/10:fs/9;ctx.strokeStyle=style==="gold"?"rgba(60,35,0,0.9)":style==="retro"?"#7c2d12":"rgba(0,0,0,0.88)";ctx.lineJoin="round";ctx.strokeText(t.content,0,0)}
+  if(style!=="neon"&&(t.stroke||style==="gold"||style==="outline"||style==="block"||style==="pop"||style==="retro")&&(t.strokeK==null||t.strokeK>0)){ctx.lineWidth=(style==="outline"?fs/7:style==="block"?fs/5.5:style==="pop"?fs/7:style==="retro"?fs/10:fs/9)*(t.strokeK!=null?t.strokeK:1);ctx.strokeStyle=style==="gold"?"rgba(60,35,0,0.9)":style==="retro"?"#7c2d12":"rgba(0,0,0,0.88)";ctx.lineJoin="round";ctx.strokeText(t.content,0,0)}
   if(style!=="outline"){
    if(style==="grad"){const gr=ctx.createLinearGradient(0,-fs/2,0,fs/2);gr.addColorStop(0,"#f5cd63");gr.addColorStop(0.55,"#ff7ad9");gr.addColorStop(1,"#7d7aff");ctx.fillStyle=gr}
    else ctx.fillStyle=style==="gold"?"#f5cd63":style==="neon"?"#7df9ff":style==="highlight"?"#141414":style==="sticker"?"#141414":style==="marker"?"#141414":style==="retro"?"#ffe8c9":style==="block"?"#ffffff":t.color;
-   ctx.shadowColor=style==="neon"?"#19c8e8":"rgba(0,0,0,.45)";ctx.shadowBlur=style==="neon"?26:style==="thin"?0:6;ctx.fillText(t.content,0,0)}
+   ctx.shadowColor=style==="neon"?"#19c8e8":"rgba(0,0,0,.45)";ctx.shadowBlur=t.shadow!=null?(t.shadow?22:0):(style==="neon"?26:style==="thin"?0:6);ctx.fillText(t.content,0,0)}
   ctx.restore()}
  if(!segments.length){
   ctx.save();ctx.fillStyle="#8b93a5";ctx.font="600 30px Inter,Arial";ctx.textAlign="center";
@@ -467,7 +481,7 @@ const noiseCvs=document.createElement("canvas"); noiseCvs.width=noiseCvs.height=
   nx.putImageData(im,0,0) }
 const fxCvs=document.createElement("canvas"), fxCtx=fxCvs.getContext("2d");
 function applyPostFX(){
- const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch&&!F.st)return;
+ const F=postfx; if(!F.vig&&!F.grain&&!F.glow&&!F.leak&&!F.glitch&&!F.st&&!lutTex)return;
  const W=cv.width,H=cv.height;
  if(F.glow>0){ fxCvs.width=W;fxCvs.height=H; fxCtx.clearRect(0,0,W,H);
   fxCtx.filter=`blur(${Math.max(2,Math.round(14*F.glow))}px)`; fxCtx.drawImage(cv,0,0); fxCtx.filter="none";
@@ -489,7 +503,88 @@ function applyPostFX(){
  if(F.vig>0){ const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.8);
   g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,`rgba(0,0,0,${(0.62*F.vig).toFixed(3)})`);
   ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore() }
+ applyLUT();
 }
+/* ----- LUT: .cube color grades via a WebGL2 3D-texture pass ----- */
+let lutTex=null, lutSize=0, lutName="", lutIntensity=1;
+let glCvs=null, glX=null, glProg=null, glT2=null, glT3=null, glUploadedFor=null;
+function makeBuiltinLut(kind){ const n=16, data=new Uint8Array(n*n*n*3); let i=0;
+ for(let b=0;b<n;b++)for(let g=0;g<n;g++)for(let r=0;r<n;r++){
+  let R=r/(n-1),G=g/(n-1),B=b/(n-1);
+  if(kind==="teal"){ const lum=0.2126*R+0.7152*G+0.0722*B, sh=1-lum;
+   R+=0.075*sh-0.01*lum; G+=0.055*sh; B+=0.10*sh-0.055*lum;
+   const sc=x=>x*0.78+(x*x*(3-2*x))*0.22; R=sc(R);G=sc(G);B=sc(B);
+  } else { const sc=x=>{x=Math.min(1,Math.max(0,x)); return x*x*(3-2*x)};
+   R=sc(R);G=sc(G);B=sc(B); const lum=0.2126*R+0.7152*G+0.0722*B;
+   R+=(lum-R)*0.45; G+=(lum-G)*0.45; B+=(lum-B)*0.45 }
+  data[i++]=Math.round(Math.min(1,Math.max(0,R))*255); data[i++]=Math.round(Math.min(1,Math.max(0,G))*255); data[i++]=Math.round(Math.min(1,Math.max(0,B))*255) }
+ return {size:n,data} }
+function setLut(l,name){ lutTex=l; lutSize=l?l.size:0; lutName=l?name:"";
+ const el=$("#lutName"); if(el)el.textContent=l?("Active: "+name):"No LUT active"; drawFrame() }
+function parseCube(text){ const lines=text.split(/\r?\n/); let size=0; const vals=[];
+ for(const rawLn of lines){ const t=rawLn.trim();
+  if(!t||t.startsWith("#")||t.startsWith("TITLE")||t.startsWith("DOMAIN"))continue;
+  if(t.startsWith("LUT_3D_SIZE")){ size=parseInt(t.split(/\s+/)[1]); continue }
+  if(/^[-\d]/.test(t)){ const p=t.split(/\s+/).map(Number); if(p.length>=3&&p.every(v=>isFinite(v)))vals.push(p[0],p[1],p[2]) } }
+ if(!size||vals.length<size*size*size*3)throw new Error("bad cube");
+ const data=new Uint8Array(size*size*size*3);
+ for(let i=0;i<data.length;i++)data[i]=Math.round(Math.min(1,Math.max(0,vals[i]))*255);
+ return {size,data} }
+function applyLUT(){ if(!lutTex||lutIntensity<=0)return;
+ try{
+  if(!glX){ glCvs=document.createElement("canvas");
+   glX=glCvs.getContext("webgl2",{preserveDrawingBuffer:true}); if(!glX)return;
+   const sh=(type,src)=>{const s=glX.createShader(type); glX.shaderSource(s,src); glX.compileShader(s); return s};
+   const vs="#version 300 es\nin vec2 p; out vec2 uv; void main(){uv=p*0.5+0.5; gl_Position=vec4(p,0.,1.);}";
+   const fs=`#version 300 es
+precision highp float; precision highp sampler3D; in vec2 uv; out vec4 o;
+uniform sampler2D img; uniform sampler3D lut; uniform float k; uniform float sz;
+void main(){ vec4 c=texture(img,uv); vec3 co=(c.rgb*(sz-1.)+0.5)/sz;
+ o=vec4(mix(c.rgb, texture(lut,co).rgb, k), c.a); }`;
+   glProg=glX.createProgram(); glX.attachShader(glProg,sh(glX.VERTEX_SHADER,vs)); glX.attachShader(glProg,sh(glX.FRAGMENT_SHADER,fs));
+   glX.linkProgram(glProg); if(!glX.getProgramParameter(glProg,glX.LINK_STATUS)){ glX=null; return }
+   glX.useProgram(glProg);
+   const buf=glX.createBuffer(); glX.bindBuffer(glX.ARRAY_BUFFER,buf);
+   glX.bufferData(glX.ARRAY_BUFFER,new Float32Array([-1,-1, 1,-1, -1,1, 1,1]),glX.STATIC_DRAW);
+   const loc=glX.getAttribLocation(glProg,"p"); glX.enableVertexAttribArray(loc); glX.vertexAttribPointer(loc,2,glX.FLOAT,false,0,0);
+   glT2=glX.createTexture(); glT3=glX.createTexture();
+  }
+  const W=cv.width,H=cv.height;
+  if(glCvs.width!==W||glCvs.height!==H){glCvs.width=W; glCvs.height=H}
+  glX.viewport(0,0,W,H); glX.useProgram(glProg);
+  glX.activeTexture(glX.TEXTURE0); glX.bindTexture(glX.TEXTURE_2D,glT2);
+  glX.texParameteri(glX.TEXTURE_2D,glX.TEXTURE_MIN_FILTER,glX.LINEAR);
+  glX.texParameteri(glX.TEXTURE_2D,glX.TEXTURE_WRAP_S,glX.CLAMP_TO_EDGE); glX.texParameteri(glX.TEXTURE_2D,glX.TEXTURE_WRAP_T,glX.CLAMP_TO_EDGE);
+  glX.pixelStorei(glX.UNPACK_FLIP_Y_WEBGL,true);
+  glX.texImage2D(glX.TEXTURE_2D,0,glX.RGBA,glX.RGBA,glX.UNSIGNED_BYTE,cv);
+  glX.pixelStorei(glX.UNPACK_FLIP_Y_WEBGL,false);
+  glX.activeTexture(glX.TEXTURE1); glX.bindTexture(glX.TEXTURE_3D,glT3);
+  if(glUploadedFor!==lutTex){
+   glX.texParameteri(glX.TEXTURE_3D,glX.TEXTURE_MIN_FILTER,glX.LINEAR); glX.texParameteri(glX.TEXTURE_3D,glX.TEXTURE_MAG_FILTER,glX.LINEAR);
+   glX.texParameteri(glX.TEXTURE_3D,glX.TEXTURE_WRAP_S,glX.CLAMP_TO_EDGE); glX.texParameteri(glX.TEXTURE_3D,glX.TEXTURE_WRAP_T,glX.CLAMP_TO_EDGE); glX.texParameteri(glX.TEXTURE_3D,glX.TEXTURE_WRAP_R,glX.CLAMP_TO_EDGE);
+   glX.pixelStorei(glX.UNPACK_ALIGNMENT,1);
+   glX.texImage3D(glX.TEXTURE_3D,0,glX.RGB8,lutSize,lutSize,lutSize,0,glX.RGB,glX.UNSIGNED_BYTE,lutTex.data);
+   glX.pixelStorei(glX.UNPACK_ALIGNMENT,4);
+   glUploadedFor=lutTex }
+  glX.uniform1i(glX.getUniformLocation(glProg,"img"),0);
+  glX.uniform1i(glX.getUniformLocation(glProg,"lut"),1);
+  glX.uniform1f(glX.getUniformLocation(glProg,"k"),lutIntensity);
+  glX.uniform1f(glX.getUniformLocation(glProg,"sz"),lutSize);
+  glX.drawArrays(glX.TRIANGLE_STRIP,0,4);
+  ctx.drawImage(glCvs,0,0);
+ }catch(e){ /* WebGL2 unavailable → LUT off */ }
+}
+document.querySelectorAll("[data-lut]").forEach(b=>b.onclick=()=>setLut(makeBuiltinLut(b.dataset.lut), b.textContent.trim()));
+const lutIntEl=$("#lutInt"); if(lutIntEl)lutIntEl.oninput=e=>{lutIntensity=+e.target.value/100; e.target.nextElementSibling.textContent=e.target.value; drawFrame()};
+const lutClearEl=$("#lutClear"); if(lutClearEl)lutClearEl.onclick=()=>setLut(null);
+const EXP_PRESETS={yt:{ratio:"16:9",res:"1.5",fps:"30"},shorts:{ratio:"9:16",res:"1.5",fps:"30"},square:{ratio:"1:1",res:"1.5",fps:"30"}};
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const P=EXP_PRESETS[b.dataset.preset]; if(!P)return;
+ setSelect("#ratioSel",P.ratio); setSelect("#resSel",P.res); $("#fpsSel").value=P.fps;
+ flashNow("Preset set ✓ — "+b.textContent.trim()) });
+const lutInEl=$("#lutIn"); if(lutInEl)lutInEl.onchange=async e=>{ const f=e.target.files[0]; if(!f)return;
+ try{ setLut(parseCube(await f.text()), f.name.replace(/\.cube$/i,"")); flashNow("LUT loaded ✓") }
+ catch(err){ flashNow("That .cube file could not be read") }
+ e.target.value="" };
 let musicFadeIn=0, musicFadeOut=0, musicIn=0;
 function loop(){
  $("#tCur").textContent=fmt(progTime());
@@ -797,7 +892,7 @@ function TF_HTML(s){return `<div class="sub" style="margin-top:14px">Transform</
  <div class="slider-row"><span>End ↕</span><input type="range" id="kfY" min="-50" max="50" value="${s.kf.to.y}"><output>${s.kf.to.y}</output></div>
  <div class="slider-row"><span>End opacity</span><input type="range" id="kfO" min="5" max="100" step="5" value="${Math.round((s.kf.to.op!=null?s.kf.to.op:1)*100)}"><output>${Math.round((s.kf.to.op!=null?s.kf.to.op:1)*100)}%</output></div>
  <div class="slider-row"><span>End rotation</span><input type="range" id="kfR" min="-180" max="180" step="5" value="${s.kf.to.rot||0}"><output>${s.kf.to.rot||0}°</output></div>
- <div class="row"><select id="kfEase"><option value="linear">Linear motion</option><option value="smooth" ${s.kf.ease==="smooth"?"selected":""}>Smooth ease</option></select>
+ <div class="row"><select id="kfEase"><option value="linear" ${s.kf.ease==="linear"?"selected":""}>Linear motion</option><option value="smooth" ${s.kf.ease==="smooth"?"selected":""}>Smooth ease</option><option value="in" ${s.kf.ease==="in"?"selected":""}>Ease in — slow start</option><option value="out" ${s.kf.ease==="out"?"selected":""}>Ease out — slow end</option><option value="bounce" ${s.kf.ease==="bounce"?"selected":""}>Bounce</option><option value="back" ${s.kf.ease==="back"?"selected":""}>Back — overshoot</option></select>
  <button id="kfOff">Disable</button></div>
  ${s.kf.mid?`
  <div class="sub" style="margin-top:10px">◆ Middle keyframe</div>
@@ -958,6 +1053,18 @@ $("#beatBtn").onclick=async()=>{
  try{ const b=await computeBeats(m); st.textContent="✓ "+b.length+" beats found in “"+m.name+"” — ticks are under the timeline."; renderBeatTicks() }
  catch(e){ st.textContent="Beat detection failed on that file." }
 };
+let attrClip=null;
+$("#copyAttrs").onclick=()=>{ const s=segments.find(x=>x.id===selSeg); if(!s){flashNow("Select a clip first");return}
+ attrClip=JSON.parse(JSON.stringify({fx:s.fx||null,vol:s.vol,speed:s.speed,ramp:s.ramp||"none",zoom:s.zoom,ox:s.ox,oy:s.oy,flip:s.flip,rot:s.rot,kf:s.kf||null,chroma:s.chroma||null,cutout:s.cutout||null}));
+ flashNow("Clip style copied ✓ — select another clip and paste") };
+$("#pasteAttrs").onclick=()=>{ const s=segments.find(x=>x.id===selSeg);
+ if(!attrClip){flashNow("Copy a clip style first");return}
+ if(!s){flashNow("Select a clip to paste onto");return}
+ Object.assign(s,JSON.parse(JSON.stringify(attrClip))); renderTimeline(); renderSegPanel(); drawFrame(); pushHistory(); flashNow("Style pasted ✓") };
+$("#gridBtn").onclick=()=>{ const g=$("#guides"); const on=g.style.display==="none";
+ g.style.display=on?"block":"none"; localStorage.setItem("cv_guides",on?"1":"0");
+ flashNow(on?"Guides on (screen only — never exported)":"Guides off") };
+if(localStorage.getItem("cv_guides")==="1")$("#guides").style.display="block";
 function splitAtBeats(idx){
  const s=segments[idx]; if(!s)return 0;
  const mid=$("#musicSel").value, m=mid?media.get(mid):null;

@@ -103,6 +103,8 @@ a{color:var(--gold2)}
 .tplcard.sel{border-color:#fff;box-shadow:0 0 0 2px var(--gold)}
 /* Phase L — order & ease */
 .canvas-wrap{position:relative}
+#guides{position:absolute;inset:0;pointer-events:none;z-index:4;background-image:linear-gradient(90deg, rgba(255,255,255,.45) 1px, transparent 1px),linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px);background-size:33.34% 33.34%;background-position:center}
+#guides::after{content:"";position:absolute;inset:6%;border:1.5px dashed rgba(245,205,99,.7);border-radius:4px}
 #homeCard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;padding:22px;background:rgba(7,8,12,.45);z-index:5}
 #homeCard button{width:min(300px,86%);min-height:52px;font-size:16px;font-weight:700;border-radius:14px}
 #homeCard .hc-title{font-size:19px;font-weight:800;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
@@ -158,6 +160,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     </div>
   </div>
   <div class="canvas-wrap"><canvas id="cv" width="720" height="1280"></canvas>
+    <div id="guides" style="display:none"></div>
     <div id="homeCard">
       <div class="hc-title" data-i18n="hc_title">🎬 What do you want to make?</div>
       <button class="gold" id="hcAdd" data-i18n="hc_add">➕ Add my video or photo</button>
@@ -170,6 +173,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <button class="playbtn" id="playBtn">▶</button>
     <button id="restartBtn" title="Back to start" style="min-height:44px">⏮</button>
     <button id="frameBtn" title="Save current frame as a PNG image" style="min-height:44px">📸</button>
+    <button id="gridBtn" title="Composition guides: thirds grid + safe area (never in the export)" style="min-height:44px">📐</button>
     <div class="time"><b id="tCur">0:00.0</b> / <span id="tDur">0:00.0</span></div>
     <div id="lvlWrap" title="Audio level"><i id="lvlFill"></i></div>
     <span id="nowPlaying">Tap “Media +” below, or open Templates → Demo</span>
@@ -264,6 +268,11 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <button id="freezeBtn" data-i18n="btn_freeze">❄ Freeze frame</button>
     <button id="revBtn" data-i18n="btn_reverse">⏪ Reverse clip</button>
   </div>
+  <div class="row" style="margin-top:9px">
+    <button id="copyAttrs" style="flex:1">📋 Copy clip style</button>
+    <button id="pasteAttrs" style="flex:1">📥 Paste style</button>
+  </div>
+  <p class="hint">Copy a clip's color, effects, zoom, motion and sound settings — then paste them onto any other clip. (Premiere-style Paste Attributes.)</p>
   <p class="hint" style="margin-top:7px">Freeze: pause playback on the frame you want, then tap Freeze. Reverse creates a reversed copy of the selected clip (on-device, 60s max).</p>
   <div class="sub">Overlay (picture-in-picture)</div>
   <div id="ovPanel"><p class="hint">In Media, tap “＋ PiP” on any video or photo to place it on top of your main video. Then tap its bar on the overlay track to move, resize or retime it.</p></div>
@@ -393,6 +402,15 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <div class="slider-row"><span>Split tone</span><input type="range" id="fxSt" min="0" max="100" value="0"><output id="fxStO">0</output></div>
   <div class="row" style="align-items:center;gap:14px"><span style="font-size:12.5px;color:var(--mut)">Shadows</span><input type="color" id="fxStSh" value="#20306e" style="width:52px;height:36px"><span style="font-size:12.5px;color:var(--mut)">Highlights</span><input type="color" id="fxStHi" value="#ffb36b" style="width:52px;height:36px"></div>
   <div class="row"><button id="fxGlitch">📺 Glitch bursts: OFF</button></div>
+  <div class="sub">🎚 LUT — professional color grades</div>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    <button data-lut="teal" style="flex:1 1 28%">Teal &amp; Orange</button>
+    <button data-lut="noir" style="flex:1 1 28%">Noir Contrast</button>
+    <label class="gold" style="flex:1 1 28%;text-align:center;padding:11px;border-radius:10px;cursor:pointer;font-weight:700">⬆ Import .cube<input type="file" id="lutIn" accept=".cube" hidden></label>
+  </div>
+  <div class="slider-row"><span>LUT strength</span><input type="range" id="lutInt" min="0" max="100" value="100"><output>100</output></div>
+  <div class="row"><span id="lutName" style="flex:1;font-size:13px;color:var(--mut)">No LUT active</span><button id="lutClear">Clear</button></div>
+  <p class="hint">LUTs are the .cube files professionals use in Premiere / DaVinci / Filmora. A LUT applies to the whole video and the export. (Free LUT packs are everywhere online.)</p>
   <div class="sub" data-i18n="sub_intensity">Filter intensity</div>
   <div class="slider-row"><span>Intensity</span><input type="range" id="intRange" min="10" max="100" value="100"><output id="intRangeO">100%</output></div>
   <div class="sub" data-i18n="sub_trans">Transition between clips</div>
@@ -433,6 +451,12 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
     <option value="fill">Fill (crop to frame)</option>
     <option value="black">Fit + black background</option>
   </select></div>
+  <div class="sub">⚡ One-tap export presets</div>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    <button data-preset="yt" style="flex:1 1 28%">▶ YouTube 16:9 HD</button>
+    <button data-preset="shorts" style="flex:1 1 28%">📱 Shorts / Reels 9:16</button>
+    <button data-preset="square" style="flex:1 1 28%">⬛ Square 1:1</button>
+  </div>
   <div class="field"><label>Export size</label>
   <select id="resSel" style="width:100%">
     <option value="1" selected>Standard (720-wide · faster)</option>
@@ -457,7 +481,7 @@ body.rtl .timeline,body.rtl .tl-track,body.rtl #tlRuler,body.rtl .tl-texts,body.
   <button class="gold bigbtn" id="demoBtn">▶ Try the demo project</button>
 </div>
 
-<footer>CutVault v18 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
+<footer>CutVault v19 — an original CineVault product, inspired by modern editor workflows. Not affiliated with CapCut / ByteDance. Files never leave your device.</footer>
 <video id="vid" playsinline style="display:none"></video>
 <img id="imgEl" style="display:none" alt="">
 <video id="vid2" playsinline muted style="display:none"></video>
